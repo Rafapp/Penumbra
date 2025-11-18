@@ -1,2 +1,2 @@
-# Umbra
+# Penumbra
 Path Tracer
