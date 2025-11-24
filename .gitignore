@@ -1,0 +1,32 @@
+# CMake generated files and folders
+build/
+bin/
+lib/
+out/
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+*.ninja
+.ninja_deps
+.ninja_log
+
+# Visual Studio files and folders
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+ipch/
+Debug/
+Release/
+*.pdb
+*.obj
+*.idb
+*.log
+
+# IDE config files
+.vscode/
+.idea/
+cmake-build-debug/
