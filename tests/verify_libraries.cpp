@@ -63,7 +63,7 @@ int main() {
         return 1;
     }
 
-	// Test TinyBVH (header only)
+    // Test TinyBVH
     std::cout << "✓ TinyBVH headers found" << std::endl;
 
     std::cout << std::endl;
