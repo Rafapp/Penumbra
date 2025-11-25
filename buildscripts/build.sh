@@ -1,5 +1,15 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
+
+# Colors and formatting
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$SCRIPT_DIR/.."
@@ -8,6 +18,22 @@ HEADLESS=OFF
 BUILD_TYPE=Release
 VERIFY=ON
 OPTIMIZED=ON
+
+# Spinner function
+spinner() {
+  local pid=$1
+  local delay=0.1
+  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  
+  while kill -0 $pid 2>/dev/null; do
+    local temp=${spinstr#?}
+    printf " ${CYAN}${spinstr:0:1}${NC}"
+    spinstr=$temp${spinstr%"${temp}"}
+    sleep $delay
+    printf "\b\b\b"
+  done
+  printf "   \b\b\b"
+}
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -52,54 +78,56 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "=========================================="
-echo "Building Penumbra"
-echo "=========================================="
-echo "Configuration:"
-echo "  Headless:    $HEADLESS"
-echo "  Build Type:  $BUILD_TYPE"
-echo "  Verify:      $VERIFY"
-echo "  Optimize:    $OPTIMIZED"
-echo "=========================================="
+echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}${CYAN}║          Building PENUMBRA ...         ║${NC}"
+echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "${BOLD}Configuration:${NC}"
+echo -e "  Headless:    ${MAGENTA}$HEADLESS${NC}"
+echo -e "  Build Type:  ${MAGENTA}$BUILD_TYPE${NC}"
+echo -e "  Verify:      ${MAGENTA}$VERIFY${NC}"
+echo -e "  Optimize:    ${MAGENTA}$OPTIMIZED${NC}"
 echo ""
 
 cd "$PROJECT_DIR"
 mkdir -p build
 cd build
 
-echo "[1/3] Configuring CMake..."
+echo -e "${BOLD}${BLUE}[1/2]${NC} ${BOLD}Configuring CMake and fetching libraries...${NC}"
 cmake .. \
   -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
   -DENABLE_OPTIMIZATIONS=$OPTIMIZED \
   -DPATHTRACER_HEADLESS=$HEADLESS \
-  -DENABLE_VERIFY_TESTS=$VERIFY
+  -DENABLE_VERIFY_TESTS=$VERIFY > /dev/null 2>&1
 
-echo ""
-echo "[2/3] Fetching and building libraries..."
-echo "  - RGFW"
-echo "  - GLM"
-echo "  - ASSIMP"
-echo "  - TinyBVH"
-echo "  - ImGUI"
+echo -e "${GREEN}✓ Configuration complete${NC}"
 echo ""
 
-echo "[3/3] Building Penumbra..."
-cmake --build . --config $BUILD_TYPE
-
+echo -e "${BOLD}${BLUE}[2/2]${NC} ${BOLD}Building Penumbra with libraries:${NC}"
+echo -e "  ${CYAN}◆${NC} GLFW"
+echo -e "  ${CYAN}◆${NC} GLM"
+echo -e "  ${CYAN}◆${NC} Assimp"
+echo -e "  ${CYAN}◆${NC} TinyBVH"
+echo -e "  ${CYAN}◆${NC} OpenImageIO"
+echo -e "  ${CYAN}◆${NC} ImGui"
 echo ""
-echo "✓ Build successful!"
+
+cmake --build . --config $BUILD_TYPE &
+spinner $!
+echo -e "${GREEN}✓ Build successful!${NC}"
 echo ""
 
 if [[ $VERIFY == "ON" ]]; then
-  echo "=========================================="
-  echo "Running library verification tests..."
-  echo "=========================================="
+  echo -e "${BOLD}${BLUE}Running library verification tests...${NC}"
+  echo ""
   ctest --output-on-failure -VV
   echo ""
-  echo "✓ All libraries verified!"
+  echo -e "${GREEN} ✓ All libraries verified!${NC}"
 fi
 
 echo ""
-echo "=========================================="
-echo "Build complete!"
-echo "=========================================="
+echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}${CYAN}║           Build Complete! 🎉           ║${NC}"
+echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
+echo -e "${BOLD}${GREEN} Ready to render!${NC}"
+echo ""
