@@ -79,7 +79,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║          Building PENUMBRA ...         ║${NC}"
+echo -e "${BOLD}${CYAN}║         Building Penumbra Pathtracer   ║${NC}"
 echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BOLD}Configuration:${NC}"
@@ -98,7 +98,6 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
   -DENABLE_OPTIMIZATIONS=$OPTIMIZED \
   -DPATHTRACER_HEADLESS=$HEADLESS \
-  -DENABLE_VERIFY_TESTS=$VERIFY > /dev/null 2>&1
 
 echo -e "${GREEN}✓ Configuration complete${NC}"
 echo ""
@@ -112,8 +111,17 @@ echo -e "  ${CYAN}◆${NC} OpenImageIO"
 echo -e "  ${CYAN}◆${NC} ImGui"
 echo ""
 
-cmake --build . --config $BUILD_TYPE &
-spinner $!
+cmake --build . --config $BUILD_TYPE
+BUILD_EXIT_CODE=$?
+
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+  echo -e "${RED}✗ Build failed!${NC}"
+  echo ""
+  echo -e "${BOLD}${RED}Please fix the errors above and try again.${NC}"
+  exit 1
+fi
+
+echo ""
 echo -e "${GREEN}✓ Build successful!${NC}"
 echo ""
 
@@ -122,12 +130,12 @@ if [[ $VERIFY == "ON" ]]; then
   echo ""
   ctest --output-on-failure -VV
   echo ""
-  echo -e "${GREEN} ✓ All libraries verified!${NC}"
+  echo -e "${GREEN}✓ All libraries verified!${NC}"
 fi
 
 echo ""
 echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║           Build Complete! 🎉           ║${NC}"
+echo -e "${BOLD}${CYAN}║        Build Complete! 🎉              ║${NC}"
 echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
-echo -e "${BOLD}${GREEN} Ready to render!${NC}"
+echo -e "${BOLD}${GREEN}Ready to render some beautiful paths!${NC}"
 echo ""

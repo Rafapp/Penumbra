@@ -38,7 +38,7 @@ FetchContent_Declare(assimp
   CMAKE_ARGS 
     -DASSIMP_BUILD_TESTS=OFF 
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF
-    -DASSIMP_BUILD_MDL_IMPORTER=OFF
+    -DASSIMP_BUILD_MDL_IMPORTER=OFF # Unstable
 )
 
 # OpenImageIO - Image Input/Output 
@@ -74,7 +74,7 @@ FetchContent_MakeAvailable(assimp tinybvh glm glfw imgui)
 option(PATHTRACER_HEADLESS "Build headless version" OFF)
 option(ENABLE_VERIFY_TESTS "Build library verification tests" ON)
 
-# === Build ImGui library with GLFW backend ===
+# === Inlcude ImGui library with GLFW backend ===
 add_library(imgui
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
@@ -87,6 +87,14 @@ add_library(imgui
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 target_link_libraries(imgui PUBLIC glfw)
 
+# == Include Glad ==
+add_library(glad STATIC
+  ${CMAKE_SOURCE_DIR}/third_party/glad/glad.c
+)
+target_include_directories(glad PUBLIC
+  ${CMAKE_SOURCE_DIR}/third_party/glad
+)
+
 # === Library Verification Tests ===
 if(ENABLE_VERIFY_TESTS)
   enable_testing()
@@ -94,14 +102,18 @@ if(ENABLE_VERIFY_TESTS)
   add_executable(verify_libraries tests/verify_libraries.cpp)
   
   target_include_directories(verify_libraries PRIVATE 
-    ${glfw_SOURCE_DIR}/include
-    ${glm_SOURCE_DIR}
-    ${assimp_SOURCE_DIR}/include
-    ${imgui_SOURCE_DIR}
+		${CMAKE_SOURCE_DIR}/penumbra/include
+		${CMAKE_SOURCE_DIR}/third_party
+		${glfw_SOURCE_DIR}/include
+		${glm_SOURCE_DIR}
+		${assimp_SOURCE_DIR}/include
+		${tinybvh_SOURCE_DIR}
+		${imgui_SOURCE_DIR}
+		${imgui_SOURCE_DIR}/backends
   )
   
   target_link_libraries(verify_libraries PRIVATE
-    glfw glm assimp imgui OpenImageIO::OpenImageIO
+		glfw glm assimp imgui OpenImageIO::OpenImageIO glad
   )
   
   add_test(NAME VerifyLibraries COMMAND verify_libraries)
@@ -114,6 +126,7 @@ add_executable(penumbra ${SRC_FILES} ${HEADER_FILES})
 
 target_include_directories(penumbra PRIVATE
   ${CMAKE_SOURCE_DIR}/penumbra/include
+	${CMAKE_SOURCE_DIR}/third_party
   ${glfw_SOURCE_DIR}/include
   ${glm_SOURCE_DIR}
   ${assimp_SOURCE_DIR}/include
@@ -122,9 +135,20 @@ target_include_directories(penumbra PRIVATE
   ${imgui_SOURCE_DIR}/backends
 )
 
-target_link_libraries(penumbra PRIVATE 
-  glfw glm assimp imgui OpenImageIO::OpenImageIO
+# Silence TinyBVH warnings
+target_include_directories(penumbra SYSTEM PRIVATE
+    ${tinybvh_SOURCE_DIR}
 )
+
+target_link_libraries(penumbra PRIVATE 
+	glfw glm assimp imgui OpenImageIO::OpenImageIO glad
+)
+
+# macOS requires Cocoa framework
+if(APPLE)
+	target_compile_definitions(penumbra PRIVATE GL_SILENCE_DEPRECATION)
+  target_link_libraries(penumbra PRIVATE "-framework Cocoa")
+endif()
 
 if(NOT PATHTRACER_HEADLESS)
   target_compile_definitions(penumbra PRIVATE UI_ENABLED)
