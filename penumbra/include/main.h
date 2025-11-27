@@ -1,5 +1,7 @@
-#include "viewport.h"
+#pragma once
+
 #include <OpenImageIO/imageio.h>
 #include <iostream>
 
-using namespace OIIO;
+#include "viewport.h"
+#include "gui.h"

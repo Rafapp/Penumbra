@@ -1,10 +1,14 @@
+#pragma once
+
 #include <glad.h>
 #include <vector>
 #include <stdexcept>
 #include <iostream>
 #include <GLFW/glfw3.h>
 
-class Viewport{
+class GUI;
+
+class Viewport {
 public:
     Viewport(int width, int height);
     ~Viewport();
@@ -29,7 +33,8 @@ public:
     
 private:
     GLFWwindow* m_window;
-    int m_width, m_height;
+    int m_width = 0;
+    int m_height = 0;
     std::vector<uint8_t> m_windowBuffer;
     GLuint m_texture = 0;
     GLuint m_program = 0;
@@ -41,4 +46,6 @@ private:
 
     GLuint compileShader(const char* source, GLenum type);
     void createShaderProgram();
+
+    std::unique_ptr<GUI> m_gui;
 };

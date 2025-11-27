@@ -1,4 +1,5 @@
 #include "viewport.h"
+#include "gui.h"
 
 const char* vertexShader = R"(
 #version 150
@@ -91,6 +92,14 @@ Viewport::Viewport(int width, int height) :
     }
     
     glfwMakeContextCurrent(m_window);
+
+    // GUI
+    m_gui = std::make_unique<GUI>(m_window);
+	m_gui->SetRenderCallback([]() {
+		std::cout << "Render button clicked!" << std::endl;
+        // TODO: Call pathtracer Render() here
+	});
+
     int fbw, fbh;
     glfwGetFramebufferSize(m_window, &fbw, &fbh);
     m_width  = fbw;
@@ -189,6 +198,8 @@ void Viewport::ShowViewport(){
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+    m_gui->NewFrame();
+    m_gui->Render();
 
     glfwSwapBuffers(m_window);
 }
