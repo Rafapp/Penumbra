@@ -11,6 +11,18 @@ GUI::GUI(GLFWwindow* window) : m_window(window) {
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    // Load font
+    ImFontConfig cfg;
+    cfg.OversampleH = 5;
+    cfg.OversampleV = 5;
+    cfg.PixelSnapH = true;
+    cfg.RasterizerMultiply = 1.5f;
+    m_font = io.Fonts->AddFontFromFileTTF("./resources/fonts/JetBrainsMono-Regular.ttf", 16.0f, &cfg);
+    if (!m_font) {
+        std::cerr << "Failed to load JetBrainsMono-Regular.ttf\n";
+    }
+    io.Fonts->Build();
 }
 
 GUI::~GUI() {
@@ -35,6 +47,9 @@ void GUI::Render() {
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove;
 
     if (ImGui::Begin("Render Controls", nullptr, window_flags)) {
+
+        if (m_font) ImGui::PushFont(m_font);
+
         float panelWidth = ImGui::GetContentRegionAvail().x;
         io.FontGlobalScale = 0.005f * panelWidth;
 
@@ -68,6 +83,9 @@ void GUI::Render() {
 
             ImGui::Unindent(20.0f);
         }
+
+        if (m_font) ImGui::PopFont();
+
     }
 
     ImGui::End();

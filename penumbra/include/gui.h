@@ -24,6 +24,7 @@ public:
 private:
     GLFWwindow* m_window;
     RenderCallback m_renderCallback;
+    ImFont* m_font;
 
     void SetupImGuiStyle();
 };

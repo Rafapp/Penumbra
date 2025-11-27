@@ -156,5 +156,12 @@ else()
   target_compile_definitions(penumbra PRIVATE HEADLESS_MODE)
 endif()
 
+# == Copy resources ==
+add_custom_command(TARGET penumbra POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/resources"
+    $<TARGET_FILE_DIR:penumbra>/resources
+)
+
 # === Apply Optimizations ===
 set_target_optimizations(penumbra)
