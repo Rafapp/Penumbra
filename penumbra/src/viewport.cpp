@@ -2,13 +2,17 @@
 
 const char* vertexShader = R"(
 #version 150
+
 in vec2 position;
 in vec2 texCoord;
 out vec2 TexCoord;
 
+uniform vec2 uScale;
+
 void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
-    TexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
+    vec2 scaled = position * uScale;
+    gl_Position = vec4(scaled, 0.0, 1.0);
+    TexCoord = texCoord;
 }
 )";
 
@@ -19,7 +23,7 @@ out vec4 FragColor;
 uniform sampler2D tex;
 
 void main() {
-    FragColor = texture(tex, TexCoord);
+    FragColor = texture(tex, vec2(TexCoord.x, 1.0 - TexCoord.y));
 }
 )";
 
@@ -87,32 +91,39 @@ Viewport::Viewport(int width, int height) :
     }
     
     glfwMakeContextCurrent(m_window);
+    int fbw, fbh;
+    glfwGetFramebufferSize(m_window, &fbw, &fbh);
+    m_width  = fbw;
+    m_height = fbh;
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         throw std::runtime_error("Failed to load OpenGL functions");
     }
 
-    // set viewport to the initial framebuffer size
-    int fbw, fbh;
-    glfwGetFramebufferSize(m_window, &fbw, &fbh);
-    glViewport(0, 0, fbw, fbh);
-
-    // create the texture once (empty)
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    // allocate storage once (null data)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // TODO: Get these from the pathtracer resolution and allow update
+    m_windowBuffer.resize(imgW * imgH * 3, 0);
 
     glfwSwapInterval(1);
-    m_windowBuffer.resize(m_width * m_height * 3, 0);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     
     createShaderProgram();
-    
+
+    // Generate and bind texture 
+    glGenTextures(1, &m_texture);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB,
+        imgW, imgH,
+        0, GL_RGB, GL_UNSIGNED_BYTE,
+        nullptr
+    );
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     float vertices[] = {
         // First triangle
         -1.f,  1.f,   0.f, 1.f,
@@ -137,36 +148,68 @@ Viewport::Viewport(int width, int height) :
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    // Set initial scale uniform
+    m_uniformScaleLocation = glGetUniformLocation(m_program, "uScale");
+    glUseProgram(m_program);
+    glUniform2f(m_uniformScaleLocation, 1.0f, 1.0f);
+
+    // Callbacks
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, ResizeCallbackStatic);
 
     glBindVertexArray(0);
 }
 
+void Viewport::UpdateTexture(const std::vector<uint8_t>& pixels, int w, int h){
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+                imgW, imgH,
+                GL_RGB, GL_UNSIGNED_BYTE,
+                pixels.data());
+}
+
 void Viewport::ShowViewport(){
     glClear(GL_COLOR_BUFFER_BIT);
-    
-    // Create/update texture
-    if (m_texture == 0) {
-        glGenTextures(1, &m_texture);
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, m_windowBuffer.data());
-    } else {
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_RGB, GL_UNSIGNED_BYTE, m_windowBuffer.data());
-    }
-
     glUseProgram(m_program);
+    
+    // Scale viewport to maintain aspect ratio
+    float windowAspect = (float) m_width / m_height;
+    float imageAspect  = (float) imgW / imgH;
+    float scaleX = (windowAspect > imageAspect) ? (imageAspect / windowAspect) : 1.f;
+    float scaleY = (windowAspect > imageAspect) ? 1.f : (windowAspect / imageAspect);
+    glUniform2f(m_uniformScaleLocation, scaleX, scaleY);
+    glUniform1i(m_uniformTexLocation, 0);
+    
+    // Bind texture and draw
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_texture);
-    glUniform1i(glGetUniformLocation(m_program, "tex"), 0);
+
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    
+    glBindVertexArray(0);
+
     glfwSwapBuffers(m_window);
-    
+}
+
+void Viewport::ResizeViewport(int width, int height){
+    m_width = width;
+    m_height = height;
+    glViewport(0, 0, m_width, m_height);
+}
+
+void Viewport::ResizeCallbackStatic(GLFWwindow* window, int w, int h){
+    Viewport* vp = static_cast<Viewport*>(glfwGetWindowUserPointer(window));
+    if (vp) {
+        vp->ResizeCallback(window, w, h);
+    }
+}
+
+void Viewport::ResizeCallback(GLFWwindow* window, int w, int h){
+    m_width = w;
+    m_height = h;
+    ShowViewport();
 }
 
 bool Viewport::ShouldClose() const {

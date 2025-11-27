@@ -2,3 +2,4 @@
 #include <OpenImageIO/imageio.h>
 #include <iostream>
 
+using namespace OIIO;

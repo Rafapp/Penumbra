@@ -2,18 +2,38 @@
 #include "main.h"
 
 int main() {
-    Viewport viewport(960, 540);
-    auto& buffer = viewport.GetWindowBuffer();
-    
-    for (size_t i = 0; i < buffer.size(); i += 3) {
-        buffer[i + 0] = 255;  // R
-        buffer[i + 1] = 0;    // G
-        buffer[i + 2] = 255;    // B
-    }
+	const char* filename = "/Users/rafa/Downloads/test.png";
+
+	auto inp = OIIO::ImageInput::open(filename);
+	if (!inp) {
+		std::cerr << "OIIO open error: " << OIIO::geterror() << std::endl;
+		return -1;
+	}
+
+	const OIIO::ImageSpec& spec = inp->spec();
+	int xres      = spec.width;
+	int yres      = spec.height;
+	int nchannels = spec.nchannels;
+
+	std::vector<uint8_t> pixels(xres * yres * nchannels, 255);
+
+	bool ok = inp->read_image(0, 0, 0, nchannels, OIIO::TypeDesc::UINT8, pixels.data());
+
+	if (!ok) {
+		std::cerr << "OIIO read_image error: " << inp->geterror() << std::endl;
+		std::cerr << "Global OIIO error: " << OIIO::geterror() << std::endl;
+		inp->close();
+		return -1;
+	}
+
+	inp->close();
+	Viewport viewport(960, 540);
+	viewport.UpdateTexture(pixels, xres, yres);
 
     while (!viewport.ShouldClose()) {
         viewport.PollEvents();
         viewport.ShowViewport();
     }
+
     return 0;
 }
