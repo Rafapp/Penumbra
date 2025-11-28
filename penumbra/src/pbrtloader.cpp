@@ -14,3 +14,7 @@ bool PbrtLoader::LoadScene(const std::string& filename) {
         return false;
     }
 }
+
+minipbrt::Scene* PbrtLoader::GetScene() {
+    return this->pbrtScene;
+}

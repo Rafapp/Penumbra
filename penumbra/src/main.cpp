@@ -39,6 +39,8 @@ int main() {
 	// Load PBRT scene
 	PbrtLoader pbrtLoader;
 	pbrtLoader.LoadScene("./resources/scenes/test.pbrt");
+	Renderer renderer;
+	renderer.SetPbrtScene(pbrtLoader.GetScene());
 
     while (!viewport.ShouldClose()) {
         viewport.PollEvents();
