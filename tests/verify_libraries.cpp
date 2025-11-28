@@ -5,6 +5,7 @@
 #include <OpenImageIO/imageio.h>
 #include <imgui.h>
 #include <iostream>
+#include "minipbrt.h"
 
 int main() {
     std::cout << "Verifying libraries..." << std::endl;

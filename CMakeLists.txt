@@ -41,6 +41,13 @@ FetchContent_Declare(assimp
     -DASSIMP_BUILD_MDL_IMPORTER=OFF # Unstable
 )
 
+# Minipbrt - read .pbrt scenes
+FetchContent_Declare(
+  minipbrt
+  GIT_REPOSITORY https://github.com/vilya/minipbrt.git
+  GIT_TAG master
+)
+
 # OpenImageIO - Image Input/Output 
 find_package(OpenImageIO REQUIRED)
 
@@ -68,7 +75,12 @@ FetchContent_Declare(imgui
   GIT_TAG v1.89.9
 )
 
-FetchContent_MakeAvailable(assimp tinybvh glm glfw imgui)
+FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
+
+# Fix the typo in main.cpp for minipbrt (put a PR already)
+file(READ ${minipbrt_SOURCE_DIR}/main.cpp contents)
+string(REPLACE "cropwwindow" "cropwindow" contents "${contents}")
+file(WRITE ${minipbrt_SOURCE_DIR}/main.cpp "${contents}")
 
 # === Options ===
 option(PATHTRACER_HEADLESS "Build headless version" OFF)
@@ -107,6 +119,7 @@ if(ENABLE_VERIFY_TESTS)
 		${glfw_SOURCE_DIR}/include
 		${glm_SOURCE_DIR}
 		${assimp_SOURCE_DIR}/include
+		${minipbrt_SOURCE_DIR}
 		${tinybvh_SOURCE_DIR}
 		${imgui_SOURCE_DIR}
 		${imgui_SOURCE_DIR}/backends
@@ -130,6 +143,7 @@ target_include_directories(penumbra PRIVATE
   ${glfw_SOURCE_DIR}/include
   ${glm_SOURCE_DIR}
   ${assimp_SOURCE_DIR}/include
+	${minipbrt_SOURCE_DIR}
   ${tinybvh_SOURCE_DIR}
   ${imgui_SOURCE_DIR}
   ${imgui_SOURCE_DIR}/backends
