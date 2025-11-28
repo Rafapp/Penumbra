@@ -5,3 +5,4 @@
 
 #include "viewport.h"
 #include "gui.h"
+#include "pbrtloader.h"

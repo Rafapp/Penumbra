@@ -137,6 +137,10 @@ file(GLOB SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/*.cpp)
 file(GLOB HEADER_FILES ${CMAKE_SOURCE_DIR}/penumbra/include/*.h)
 add_executable(penumbra ${SRC_FILES} ${HEADER_FILES})
 
+target_sources(penumbra PRIVATE
+	${minipbrt_SOURCE_DIR}/minipbrt.cpp
+)
+
 target_include_directories(penumbra PRIVATE
   ${CMAKE_SOURCE_DIR}/penumbra/include
 	${CMAKE_SOURCE_DIR}/third_party
