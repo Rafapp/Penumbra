@@ -5,6 +5,7 @@
 #include "minipbrt.h"
 
 #include "raytracing.h"
+#include "pbrtconverter.h"
 
 class Shape {
 public:
@@ -14,9 +15,11 @@ public:
     int GetMaterialId() const { return materialId; }
     int GetAreaLightId() const { return areaLightId; }
     glm::mat4 GetTransform() const { return transform; }
+    glm::mat4 GetInverseTransform() const { return inverseTransform; }
     
 protected:
     glm::mat4 transform;
+    glm::mat4 inverseTransform;
     int materialId = -1;
     int areaLightId = -1;
 };

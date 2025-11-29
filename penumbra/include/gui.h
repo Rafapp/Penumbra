@@ -19,11 +19,13 @@ public:
     void NewFrame();
     void Render();
     
-    void SetRenderCallback(RenderCallback callback) { m_renderCallback = callback; }
+    void SetRenderCallback(std::function<void()> callback) {
+        m_renderCallback = callback;
+    }
 
 private:
+    std::function<void()> m_renderCallback;
     GLFWwindow* m_window;
-    RenderCallback m_renderCallback;
     ImFont* m_font;
 
     void SetupImGuiStyle();

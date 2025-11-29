@@ -1,29 +1,51 @@
 #include "shapes.h"
 
+#define SPHERE_EPS 1e-6f
+
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
-    // Ray-sphere intersection logic
-    return false;
+    float a = glm::dot(r.d,r.d);
+    float b = 2.0f * glm::dot(r.o, r.d);
+    float c = glm::dot(r.o, r.o) - 1.0f;
+
+    float discriminant = (b * b) - (4.0f * a * c);
+    if (discriminant < 0.0f) return false;
+
+    float sqrtD = sqrtf(discriminant);
+    float aInv = 1.0f / (2.0f * a);
+    float t0 = (-b - sqrtD) * aInv;
+    float t1 = (-b + sqrtD) * aInv;
+
+    float t = FLT_MAX;
+
+    if (t0 > SPHERE_EPS && t1 > SPHERE_EPS) {
+        t = t0;
+        hit.front = true;
+    }
+    else if (t0 > SPHERE_EPS) {
+        t = t0;
+        hit.front = true;
+    }
+    else if (t1 > SPHERE_EPS) {
+        t = t1;
+        hit.front = false;
+    }
+    else {
+        return false;
+    }
+
+    hit.p = r.At(t);
+    hit.t = t;
+    hit.n = hit.p;
+
+    return true;
 }
 
 // === PBRT Conversion Constructors ===
-glm::mat4 TransformToMat4(const minipbrt::Transform& transform) {
-    glm::mat4 mat(
-        glm::vec4(transform.start[0][0], transform.start[0][1], transform.start[0][2], transform.start[0][3]),
-        glm::vec4(transform.start[1][0], transform.start[1][1], transform.start[1][2], transform.start[1][3]),
-        glm::vec4(transform.start[2][0], transform.start[2][1], transform.start[2][2], transform.start[2][3]),
-        glm::vec4(transform.start[3][0], transform.start[3][1], transform.start[3][2], transform.start[3][3])
-    );
-    return glm::transpose(mat);
-}
-
 Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
-    this->transform = TransformToMat4(pbrtSphere->shapeToWorld);
+    this->transform = PbrtConverter::TransformToMat4(pbrtSphere->shapeToWorld);
+    this->inverseTransform = glm::inverse(this->transform);
     this->materialId = static_cast<int>(pbrtSphere->material);
     this->areaLightId = static_cast<int>(pbrtSphere->areaLight);
     this->radius = pbrtSphere->radius;
-    std::cout << "Converted PBRT Sphere to Penumbra Sphere:" << std::endl;
-    std::cout << "  Material ID: " << this->materialId << std::endl;
-    std::cout << "  Area Light ID: " << this->areaLightId << std::endl;
-    std::cout << "  Radius: " << this->radius << std::endl;
 }

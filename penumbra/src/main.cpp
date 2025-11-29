@@ -25,24 +25,25 @@ bool LoadImage(const char* filename, std::vector<uint8_t>& pixels, int& xres, in
 }
 
 int main() {
-	// Create viewport and display image
-	Viewport viewport(960, 540);
-
 	// Load test image
-	const char* imageFilename = "./resources/images/test.png";
-	int xres, yres, nchannels;
-	std::vector<uint8_t> pixels;
-	if(LoadImage(imageFilename, pixels, xres, yres, nchannels)){
-		viewport.UpdateTexture(pixels, xres, yres);
-	}
+	// const char* imageFilename = "./resources/images/test.png";
+	// int xres, yres, nchannels;
+	// std::vector<uint8_t> pixels;
+	// if(LoadImage(imageFilename, pixels, xres, yres, nchannels)){
+	// 	viewport.UpdateTexture(pixels, xres, yres);
+	// }
 
 	// Load PBRT scene
 	PbrtLoader pbrtLoader;
 	pbrtLoader.LoadScene("./resources/scenes/test.pbrt");
 	Renderer renderer;
 	renderer.SetPbrtScene(pbrtLoader.GetScene());
+	
+	// Create viewport and display image
+	Viewport viewport(&renderer, 960, 540);
 
     while (!viewport.ShouldClose()) {
+		viewport.UpdateTexture(renderer.GetRenderBuffer(), renderer.GetRenderWidth(), renderer.GetRenderHeight());
         viewport.PollEvents();
 		viewport.ShowViewport();
     }

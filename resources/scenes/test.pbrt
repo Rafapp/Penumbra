@@ -3,7 +3,7 @@ Film "image" "integer xresolution" [800] "integer yresolution" [800] "string fil
 Sampler "sobol" "integer samples" [16]
 Integrator "path" "integer maxdepth" [8]
 
-LookAt 0 1 4.5  0 1 0  0 1 0
+LookAt 0 0 0  0 20 0  0 0 1
 Camera "perspective" "float fov" [40]
 
 WorldBegin
@@ -11,8 +11,8 @@ WorldBegin
 # Single big white sphere
 AttributeBegin
   Material "matte" "rgb Kd" [1 1 1]
-  Translate 0 1 0
-  Scale 5 5 5
+  Translate 25 50 -25 
+  Scale 25 25 25 
   Shape "sphere"
 AttributeEnd
 

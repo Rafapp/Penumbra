@@ -6,11 +6,13 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
+#include "renderer.h"
+
 class GUI;
 
 class Viewport {
 public:
-    Viewport(int width, int height);
+    Viewport(Renderer* renderer, int width, int height);
     ~Viewport();
     void ShowViewport();
     void ResizeViewport(int width, int height);
@@ -26,15 +28,13 @@ public:
     void ResizeCallback(GLFWwindow* window, int w, int h);
 
     std::vector<uint8_t>& GetWindowBuffer(){ return m_windowBuffer; }
-
-	// TODO: Get these from the pathtracer resolution
-    int imgW = 1280;
-    int imgH = 720;
     
 private:
     GLFWwindow* m_window;
     int m_width = 0;
     int m_height = 0;
+    int rendererWidth = 0;
+    int rendererHeight = 0;
     std::vector<uint8_t> m_windowBuffer;
     GLuint m_texture = 0;
     GLuint m_program = 0;

@@ -10,10 +10,16 @@ struct Ray{
     glm::vec3 At(float t) const {
         return o + t * d;
     }
+    Ray Transform(const glm::mat4& _m) const {
+        glm::vec4 o = _m * glm::vec4(o.x, o.y, o.z, 1.0f);
+        glm::vec4 d = _m * glm::vec4(d.x, d.y, d.z, 1.0f);
+        return Ray(glm::vec3(o) / o.w, glm::vec3(d));
+    }
 };
 
 struct HitInfo{
     float t;
     glm::vec3 p;
     glm::vec3 n;
+    bool front;
 };

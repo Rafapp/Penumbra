@@ -73,7 +73,7 @@ void Viewport::createShaderProgram() {
     glUseProgram(0);
 }
 
-Viewport::Viewport(int width, int height) : 
+Viewport::Viewport(Renderer* renderer, int width, int height) : 
     m_width(width), m_height(height) {
 
     if (!glfwInit()) {
@@ -95,11 +95,11 @@ Viewport::Viewport(int width, int height) :
 
     // GUI
     m_gui = std::make_unique<GUI>(m_window);
-	m_gui->SetRenderCallback([]() {
-		std::cout << "Render button clicked!" << std::endl;
-        // TODO: Call pathtracer Render() here
-	});
-
+    m_gui->SetRenderCallback([&renderer]() {
+        renderer->BeginRender();
+    });
+    rendererWidth = renderer->GetRenderWidth();
+    rendererHeight = renderer->GetRenderHeight();
     int fbw, fbh;
     glfwGetFramebufferSize(m_window, &fbw, &fbh);
     m_width  = fbw;
@@ -109,8 +109,7 @@ Viewport::Viewport(int width, int height) :
         throw std::runtime_error("Failed to load OpenGL functions");
     }
 
-    // TODO: Get these from the pathtracer resolution and allow update
-    m_windowBuffer.resize(imgW * imgH * 3, 0);
+    m_windowBuffer.resize(rendererWidth * rendererHeight * 3, 0);
 
     glfwSwapInterval(1);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -126,7 +125,7 @@ Viewport::Viewport(int width, int height) :
 
     glTexImage2D(
         GL_TEXTURE_2D, 0, GL_RGB,
-        imgW, imgH,
+        rendererWidth,rendererHeight, 
         0, GL_RGB, GL_UNSIGNED_BYTE,
         nullptr
     );
@@ -174,7 +173,7 @@ Viewport::Viewport(int width, int height) :
 void Viewport::UpdateTexture(const std::vector<uint8_t>& pixels, int w, int h){
     glBindTexture(GL_TEXTURE_2D, m_texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                imgW, imgH,
+                w, h,
                 GL_RGB, GL_UNSIGNED_BYTE,
                 pixels.data());
 }
@@ -185,7 +184,7 @@ void Viewport::ShowViewport(){
     
     // Scale viewport to maintain aspect ratio
     float windowAspect = (float) m_width / m_height;
-    float imageAspect  = (float) imgW / imgH;
+    float imageAspect  = (float) rendererWidth / rendererHeight;
     float scaleX = (windowAspect > imageAspect) ? (imageAspect / windowAspect) : 1.f;
     float scaleY = (windowAspect > imageAspect) ? 1.f : (windowAspect / imageAspect);
     glUniform2f(m_uniformScaleLocation, scaleX, scaleY);
