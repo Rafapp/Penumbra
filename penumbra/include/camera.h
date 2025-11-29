@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "glm/glm.hpp"
 #include "minipbrt.h"
 
@@ -35,7 +37,7 @@ public:
     float GetAperture() const { return aperture; }
     
 private:
-    float fov = 90.0f;
-    float focalDistance = 1e30f;
-    float aperture = 0.0f;  // lensradius from pbrt
+    float fov = 40.0f;
+    float focalDistance = 1.0f;
+    float aperture = 0.0f;
 };

@@ -4,25 +4,20 @@
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
-    float a = glm::dot(r.d,r.d);
+    float a = glm::dot(r.d, r.d);
     float b = 2.0f * glm::dot(r.o, r.d);
     float c = glm::dot(r.o, r.o) - 1.0f;
-
     float discriminant = (b * b) - (4.0f * a * c);
+    
     if (discriminant < 0.0f) return false;
-
+    
     float sqrtD = sqrtf(discriminant);
     float aInv = 1.0f / (2.0f * a);
     float t0 = (-b - sqrtD) * aInv;
     float t1 = (-b + sqrtD) * aInv;
-
+    
     float t = FLT_MAX;
-
-    if (t0 > SPHERE_EPS && t1 > SPHERE_EPS) {
-        t = t0;
-        hit.front = true;
-    }
-    else if (t0 > SPHERE_EPS) {
+    if (t0 > SPHERE_EPS) {
         t = t0;
         hit.front = true;
     }
@@ -33,11 +28,17 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     else {
         return false;
     }
-
-    hit.p = r.At(t);
+    
+    // Compute hit point and normal in object space
+    glm::vec3 objHitP = r.At(t);
+    glm::vec3 objNormal = glm::normalize(objHitP);  // For unit sphere at origin
+    
+    // Transform to world space
+    hit.p = glm::vec3(transform * glm::vec4(objHitP, 1.0f));
+    hit.n = glm::normalize(glm::vec3(transform * glm::vec4(objNormal, 0.0f)));
     hit.t = t;
-    hit.n = hit.p;
-
+    hit.materialId = materialId;
+    
     return true;
 }
 

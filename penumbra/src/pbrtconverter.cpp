@@ -1,19 +1,58 @@
 #include "pbrtconverter.h"
+
 #include "scene.h"
 #include "camera.h"
 #include "shapes.h"
+#include "lights.h"
+#include "materials.h"
 
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
 
+    // Shapes
     for (auto pbrtShape : pbrtScene->shapes) {
         Shape* shape = ConvertShape(pbrtShape);
         if (shape) scene.shapes.push_back(shape);
     }
+
+    // Lights
+    for( auto pbrtLight : pbrtScene->lights) {
+        Light* light = ConvertLight(pbrtLight);
+        if (light) scene.lights.push_back(light);
+    }
     
+    // Materials
+    for (auto pbrtMat : pbrtScene->materials) {
+        Material* material = ConvertMaterial(pbrtMat);
+        if (material) scene.materials.push_back(material);
+    }
+
+    // Camera
     scene.camera = ConvertCamera(pbrtScene->camera);
-    
     return scene;
+}
+
+Light* PbrtConverter::ConvertLight(minipbrt::Light* pbrtLight) {
+    Light* light = nullptr;
+
+    // Check light type and convert accordingly
+    if (pbrtLight->type() == minipbrt::LightType::Point) {
+        auto pbrtPointLight = static_cast<minipbrt::PointLight*>(pbrtLight);
+        light = new PointLight(pbrtPointLight);
+    } 
+    return light;
+}
+
+Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
+    if (!pbrtMat) return nullptr;
+    
+    Material* material = nullptr;
+    
+    if (pbrtMat->type() == minipbrt::MaterialType::Matte) {
+        material = new MatteMaterial(static_cast<minipbrt::MatteMaterial*>(pbrtMat));
+    }
+    
+    return material;
 }
 
 Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape) {

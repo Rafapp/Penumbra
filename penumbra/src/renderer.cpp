@@ -2,6 +2,10 @@
 
 #include <random> // TODO: Remove
 
+#include "shading.h"
+#include "pbrtloader.h"
+
+
 Renderer::Renderer() {
     scene = std::make_unique<Scene>();
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
@@ -29,15 +33,20 @@ bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
 }
 
 void Renderer::BeginRender() {
-	std::cout << "Starting render ..." << std::endl;
-
-    // Dispatch thread pool
-	static RenderThreadPool pool(scene.get(), NTHREADS, renderWidth, renderHeight);
-    pool.Stop();
-    pool.Reset();
+    std::cout << "Starting render ..." << std::endl;
+    
+    // Reload scene
+    if (!LoadScene(sceneFilename)) {
+        std::cerr << "Failed to reload scene" << std::endl;
+        return;
+    }
+    
+    threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+    threadPool->Stop();
+    threadPool->Reset();
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
-    pool.Start([this](int u, int v) { RenderPixel(u, v); });
-}   
+    threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+}
 
 void Renderer::StopRender() {
 }
@@ -55,17 +64,32 @@ bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hitInfo) {
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
     Ray camRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
+    
     HitInfo hit;
     if(IntersectRayScene(camRay, hit)) {
-        buffer[3 * (v * renderWidth + u) + 0] = static_cast<uint8_t>(255);
-        buffer[3 * (v * renderWidth + u) + 1] = static_cast<uint8_t>(255);
-        buffer[3 * (v * renderWidth + u) + 2] = static_cast<uint8_t>(255);
+		// Diffuse shading for testing
+		Material* mat = scene->materials[hit.materialId];
+		glm::vec3 color = Shading::ShadeMaterial(hit, mat, scene->lights);
+
+		int index = (v * renderWidth + u) * 3;
+		buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
+		buffer[index + 1] = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
+		buffer[index + 2] = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
+        
     } else {
-        buffer[3 * (v * renderWidth + u) + 0] = static_cast<uint8_t>(0);
-        buffer[3 * (v * renderWidth + u) + 1] = static_cast<uint8_t>(0);
-        buffer[3 * (v * renderWidth + u) + 2] = static_cast<uint8_t>(0);
+		// No hit, environment map
     }
-    std::this_thread::sleep_for(std::chrono::microseconds(1));
+}
+
+bool Renderer::LoadScene(const std::string& filename) {
+	sceneFilename = filename;
+	PbrtLoader pbrtLoader;
+	if(!pbrtLoader.LoadScene(filename)) {
+		std::cerr << "Error loading PBRT scene from file: " << filename << std::endl;
+		return false;
+	}
+	return SetPbrtScene(pbrtLoader.GetScene());
+}
 
 	// Color24* img = renderImage.GetPixels();
 	// float* zimg = renderImage.GetZBuffer();
@@ -178,5 +202,3 @@ void Renderer::RenderPixel(int u, int v) {
 	// 	std::cout << "Saved render: " << RESOURCES_PATH "img/AB/out.png" << std::endl;
 	// 	renderImage.SaveImage(RESOURCES_PATH "img/AB/out.png");
 	// }
-}
-

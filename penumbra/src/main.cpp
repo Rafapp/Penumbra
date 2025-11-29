@@ -34,10 +34,9 @@ int main() {
 	// }
 
 	// Load PBRT scene
-	PbrtLoader pbrtLoader;
-	pbrtLoader.LoadScene("./resources/scenes/test.pbrt");
+	std::string sceneFilename = "./resources/scenes/test.pbrt";
 	Renderer renderer;
-	renderer.SetPbrtScene(pbrtLoader.GetScene());
+	renderer.LoadScene(sceneFilename);
 	
 	// Create viewport and display image
 	Viewport viewport(&renderer, 960, 540);

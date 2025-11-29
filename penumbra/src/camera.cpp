@@ -2,19 +2,17 @@
 #include "pbrtconverter.h"
 
 Ray PerspectiveCamera::GenerateRay(float u, float v, int width, int height) const {
-    // Generate a ray from the camera through pixel (x, y) in the view plane
-	float fov = (fov * M_PI) / 180.0f;
-
-	float h = 2.0f * focalDistance * tanf(fov / 2.0f);
-	float w = h * (width / height);
-
-	float x = -(w / 2.0f) + (w * u / width);
-	float y = (h / 2.0f) - (h * v / height);
-
-    // Right handed system, camera looks at -z
-	float z = -focalDistance;
-
-    return Ray(glm::vec3(0.0f), glm::normalize(glm::vec3(x, y, z)));
+    float camFov = (fov * M_PI) / 180.0f;
+    float h = 2.0f * focalDistance * tanf(camFov / 2.0f);
+    float w = h * (width / (float)height);
+    float x = -(w / 2.0f) + (w * u / width);
+    float y = (h / 2.0f) - (h * v / height);
+    float z = focalDistance;
+    
+    glm::vec4 oWorld = cameraToWorld * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 dWorld = cameraToWorld * glm::vec4(x, y, z, 0.0f);
+    
+    return Ray(oWorld, glm::normalize(glm::vec3(dWorld)));
 }
 
 // === PBRT Conversion Constructors ===

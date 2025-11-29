@@ -8,10 +8,12 @@
 #include <random>
 #include <iostream>
 
-#include "renderer.h"
-#include "scene.h"
+class Scene;
+class Renderer;
 
 #define TILESIZE 8 
+#define SHUFFLE false  // TODO: Address morton ordering with shuffling
+#define MORTON_ORDERING true 
 
 class RenderThreadPool {
 public:

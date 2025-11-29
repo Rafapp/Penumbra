@@ -116,7 +116,7 @@ void RenderThreadPool::RenderWorker(std::function<void(int, int)> render) {
 
 void RenderThreadPool::Start(std::function<void(int, int)> render) {
     std::cout << "Generating tilemap..." << std::endl; 
-    tiles = {0};
+    tiles = 0;
     grid = GenerateSpiralTilemap(w, h, tileSize);
     if(MORTON_ORDERING) PrecomputeMortonOrder();
 
