@@ -1,6 +1,9 @@
 #include "shapes.h"
 
-#define SPHERE_EPS 1e-6f
+#include <filesystem>
+
+#define SPHERE_EPS 1e-8f
+#define TRI_EPS 1e-4f
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
@@ -29,17 +32,59 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
         return false;
     }
     
-    // Compute hit point and normal in object space
-    glm::vec3 objHitP = r.At(t);
-    glm::vec3 objNormal = glm::normalize(objHitP);  // For unit sphere at origin
-    
-    // Transform to world space
-    hit.p = glm::vec3(transform * glm::vec4(objHitP, 1.0f));
-    hit.n = glm::normalize(glm::vec3(transform * glm::vec4(objNormal, 0.0f)));
-    hit.t = t;
+    // Compute hit point and normal in world space
+    hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
+    hit.n = transform * glm::vec4(glm::normalize(hit.p), 0.0f);
+    hit.t = glm::length(glm::vec3(hit.p) - r.o);
     hit.materialId = materialId;
     
     return true;
+}
+
+bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
+    // Möller & Trumbore, 1997
+    // TODO: Bvh
+    int nTris = static_cast<int>(triangles.size());
+    float closest = FLT_MAX;
+    bool hitAny = false;
+
+    for(int i = 0; i < nTris; i++){
+        glm::vec3 v0 = vertices[triangles[i].x];
+        glm::vec3 e1 = vertices[triangles[i].y] - v0;
+        glm::vec3 e2 = vertices[triangles[i].z] - v0;
+        glm::vec3 ray_cross_e2 = glm::cross(r.d, e2);
+        float det = glm::dot(e1, ray_cross_e2);
+
+        // Cull back-facing triangles
+        // if (det < TRI_EPS) return false;
+
+        float invDet = 1.0f / det;
+        glm::vec3 pToV0 = r.o - v0;
+
+        float u = invDet * glm::dot(pToV0, ray_cross_e2);
+        if (u < 0 || u > 1) continue;
+        glm::vec3 pToV0_cross_e1 = glm::cross(pToV0,e1);
+
+        float v = invDet * glm::dot(r.d, pToV0_cross_e1);
+        if (v < 0 || u + v > 1) continue;
+
+        float t = invDet * glm::dot(e2, pToV0_cross_e1);
+        if(t < TRI_EPS) continue;
+
+        hitAny = true;
+
+        if(t < closest){
+            closest = t;
+
+            // Compute hit point and normal in world space
+            hit.p = transform * glm::vec4(r.At(t), 1.0f);
+            hit.n = glm::normalize(glm::transpose(inverseTransform) * glm::vec4(normals[i], 0.0f));
+            hit.t = glm::length(glm::vec3(hit.p) - r.o);
+            hit.front = glm::dot(hit.n, -r.d) > 0.0f;
+            hit.materialId = materialId;
+        }
+    }
+    return hitAny;
 }
 
 // === PBRT Conversion Constructors ===
@@ -49,4 +94,78 @@ Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
     this->materialId = static_cast<int>(pbrtSphere->material);
     this->areaLightId = static_cast<int>(pbrtSphere->areaLight);
     this->radius = pbrtSphere->radius;
+}
+
+TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
+    if (!plyMesh) return;
+    
+    // Load mesh via Assimp
+    std::string meshPath = plyMesh->filename;
+    size_t pos = meshPath.find("./resources/meshes/");
+    if (pos != std::string::npos) {
+        // Minipbrt works from the scenes dir, so we need to clean the path
+        meshPath = meshPath.substr(pos);
+    }
+    if (!LoadMeshWithAssimp(meshPath)) {
+        std::cerr << "Failed to load mesh: " << meshPath << std::endl;
+        return;
+    }
+    this->transform = PbrtConverter::TransformToMat4(plyMesh->shapeToWorld);
+    this->inverseTransform = glm::inverse(this->transform);
+    this->materialId = static_cast<int>(plyMesh->material);
+    this->areaLightId = static_cast<int>(plyMesh->areaLight);
+}
+
+// === Mesh loading with Assimp ===
+bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
+    std::cout << "Loading mesh with Assimp: " << filename << std::endl;
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filename,
+        aiProcess_Triangulate | 
+        aiProcess_GenNormals | 
+        aiProcess_FlipWindingOrder);
+    
+    if (!scene || scene->mNumMeshes == 0) {
+        std::cerr << "Failed to load mesh: " << filename << std::endl;
+        std::cerr << "Error: " << importer.GetErrorString() << std::endl;
+        return false;
+    }
+    
+    // Load first mesh
+    const aiMesh* mesh = scene->mMeshes[0];
+    
+    // Copy vertices
+    vertices.resize(mesh->mNumVertices);
+    for (size_t i = 0; i < mesh->mNumVertices; i++) {
+        vertices[i] = glm::vec3(mesh->mVertices[i].x,
+                                     mesh->mVertices[i].y,
+                                     mesh->mVertices[i].z);
+    }
+    
+    // Copy normals
+    if (mesh->HasNormals()) {
+        normals.resize(mesh->mNumVertices);
+        for (size_t i = 0; i < mesh->mNumVertices; i++) {
+            normals[i] = glm::vec3(mesh->mNormals[i].x,
+                                        mesh->mNormals[i].y,
+                                        mesh->mNormals[i].z);
+        }
+    }
+    
+    // Copy faces (triangles)
+    triangles.resize(mesh->mNumFaces);
+    for (size_t i = 0; i < mesh->mNumFaces; i++) {
+        const aiFace& face = mesh->mFaces[i];
+        if (face.mNumIndices == 3) {
+            triangles[i] = glm::uvec3(face.mIndices[0],
+                                           face.mIndices[1],
+                                           face.mIndices[2]);
+        }
+    }
+    
+    std::cout << "Loaded mesh: " << filename << std::endl;
+    std::cout << "  Vertices: " << vertices.size() << std::endl;
+    std::cout << "  Triangles: " << triangles.size() << std::endl;
+
+    return true;
 }

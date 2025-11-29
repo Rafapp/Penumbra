@@ -8,6 +8,7 @@ class Camera;
 class Shape;
 class Light;
 class Material;
+class TriangleMesh;
 
 namespace PbrtConverter {
     Scene ConvertScene(minipbrt::Scene* pbrtScene);
@@ -15,6 +16,7 @@ namespace PbrtConverter {
     Camera* ConvertCamera(minipbrt::Camera* pbrtCam);
     Light* ConvertLight(minipbrt::Light* pbrtLight);
     Material* ConvertMaterial(minipbrt::Material* pbrtMat);
+    TriangleMesh* ConvertTriangleMesh(minipbrt::TriangleMesh* pbrtMesh);
 
     glm::mat4 TransformToMat4(const minipbrt::Transform& transform);
 }

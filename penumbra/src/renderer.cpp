@@ -51,14 +51,24 @@ void Renderer::BeginRender() {
 void Renderer::StopRender() {
 }
 
-bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hitInfo) {
+bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
+    bool hitAny = false;
+    float closest = FLT_MAX;
+    
     for(Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
-        if(shape->IntersectRay(rObj, hitInfo)) {
-            return true;
+        HitInfo tmpHit;
+        
+        if(shape->IntersectRay(rObj, tmpHit)) {
+            if(tmpHit.t < closest) {
+                closest = tmpHit.t;
+                hit = tmpHit;
+                hitAny = true;
+            }
         }
     }
-    return false;
+    
+    return hitAny;
 }
 
 void Renderer::RenderPixel(int u, int v) {

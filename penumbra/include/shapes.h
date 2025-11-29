@@ -3,6 +3,9 @@
 #include <iostream>
 
 #include "minipbrt.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include "raytracing.h"
 #include "pbrtconverter.h"
@@ -30,4 +33,19 @@ public:
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
 private:
     float radius = 1.0f;
+};
+
+class TriangleMesh : public Shape {
+public:
+    TriangleMesh(minipbrt::PLYMesh* plyMesh);
+    
+    bool IntersectRay(const Ray& r, HitInfo& hit) override;
+    
+private:
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::uvec3> triangles;
+    std::vector<glm::vec3> normals;
+    
+    bool LoadMeshWithAssimp(const std::string& filename);
+    bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
 };

@@ -6,6 +6,16 @@
 #include "lights.h"
 #include "materials.h"
 
+glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& transform) {
+    glm::mat4 mat(
+        glm::vec4(transform.start[0][0], transform.start[0][1], transform.start[0][2], transform.start[0][3]),
+        glm::vec4(transform.start[1][0], transform.start[1][1], transform.start[1][2], transform.start[1][3]),
+        glm::vec4(transform.start[2][0], transform.start[2][1], transform.start[2][2], transform.start[2][3]),
+        glm::vec4(transform.start[3][0], transform.start[3][1], transform.start[3][2], transform.start[3][3])
+    );
+    return glm::transpose(mat);
+}
+
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
 
@@ -58,11 +68,18 @@ Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
 Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape) {
     Shape* shape = nullptr;
     
-    // Check shape type and convert accordingly
     if (pbrtShape->type() == minipbrt::ShapeType::Sphere) {
         auto pbrtSphere = static_cast<minipbrt::Sphere*>(pbrtShape);
         shape = new Sphere(pbrtSphere);
     } 
+    else if (pbrtShape->type() == minipbrt::ShapeType::PLYMesh) {
+        auto plyMesh = static_cast<minipbrt::PLYMesh*>(pbrtShape);
+        shape = new TriangleMesh(plyMesh);
+    }
+    else {
+        std::cerr << "Unsupported shape type" << std::endl;
+    }
+    
     return shape;
 }
 
@@ -79,14 +96,4 @@ Camera* PbrtConverter::ConvertCamera(minipbrt::Camera* pbrtCam) {
     // TODO: Add other camera types
     
     return camera;
-}
-
-glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& transform) {
-    glm::mat4 mat(
-        glm::vec4(transform.start[0][0], transform.start[0][1], transform.start[0][2], transform.start[0][3]),
-        glm::vec4(transform.start[1][0], transform.start[1][1], transform.start[1][2], transform.start[1][3]),
-        glm::vec4(transform.start[2][0], transform.start[2][1], transform.start[2][2], transform.start[2][3]),
-        glm::vec4(transform.start[3][0], transform.start[3][1], transform.start[3][2], transform.start[3][3])
-    );
-    return glm::transpose(mat);
 }
