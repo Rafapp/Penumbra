@@ -54,13 +54,13 @@ void Renderer::StopRender() {
 bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
     bool hitAny = false;
     float closest = FLT_MAX;
-    
     for(Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
         HitInfo tmpHit;
         if(shape->IntersectRay(rObj, tmpHit)) {
+			float tWorld = glm::dot(tmpHit.p - ray.o, ray.d); 
             if(tmpHit.t < closest) {
-                closest = tmpHit.t;
+                closest = tWorld;
                 hit = tmpHit;
                 hitAny = true;
             }

@@ -32,10 +32,10 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
         return false;
     }
     
-    // Compute hit point and normal in world space
+    // Compute hit point, normal, and t value in world space
     hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
     hit.n = transform * glm::vec4(glm::normalize(hit.p), 0.0f);
-    hit.t = glm::length(glm::vec3(hit.p) - r.o);
+    hit.t = t;
     hit.materialId = materialId;
     
     return true;
@@ -76,17 +76,15 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
         if(t < closest){
             closest = t;
 
-            // Compute hit point and normal in world space
+            // Compute hit point, normal, and t value in world space
             hit.p = transform * glm::vec4(r.At(t), 1.0f);
-
             glm::vec3 n0 = normals[triangles[i].x];
             glm::vec3 n1 = normals[triangles[i].y];
             glm::vec3 n2 = normals[triangles[i].z];
             glm::vec3 nObj = glm::normalize((1 - u - v)*n0 + u*n1 + v*n2);
             glm::mat3 normalMatrix = glm::transpose(glm::mat3(inverseTransform));
             hit.n = glm::normalize(normalMatrix * nObj);
-
-            hit.t = glm::length(glm::vec3(hit.p) - r.o);
+            hit.t = t;
             hit.front = glm::dot(hit.n, -r.d) > 0.0f;
             hit.materialId = materialId;
         }
