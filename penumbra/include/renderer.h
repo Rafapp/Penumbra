@@ -17,8 +17,8 @@
 #define SKIP_PHOTONMAP_DIRECT true
 #define SHADING_ERROR_THRESHOLD 1e-1f
 #define LIGHTING_ERROR_THRESHOLD 1e-8f
-// inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
-inline unsigned int NTHREADS = 2;
+inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
+// inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:
