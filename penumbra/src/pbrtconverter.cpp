@@ -5,15 +5,14 @@
 #include "shapes.h"
 #include "lights.h"
 #include "materials.h"
+#include <glm/gtc/type_ptr.hpp>
 
-glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& transform) {
-    glm::mat4 mat(
-        glm::vec4(transform.start[0][0], transform.start[0][1], transform.start[0][2], transform.start[0][3]),
-        glm::vec4(transform.start[1][0], transform.start[1][1], transform.start[1][2], transform.start[1][3]),
-        glm::vec4(transform.start[2][0], transform.start[2][1], transform.start[2][2], transform.start[2][3]),
-        glm::vec4(transform.start[3][0], transform.start[3][1], transform.start[3][2], transform.start[3][3])
-    );
-    return glm::transpose(mat);
+glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
+    glm::mat4 m;
+    for (int r = 0; r < 4; r++)
+        for (int c = 0; c < 4; c++)
+            m[c][r] = t.start[r][c];
+    return m;
 }
 
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {

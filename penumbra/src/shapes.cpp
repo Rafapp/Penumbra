@@ -34,7 +34,8 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     
     // Compute hit point, normal, and t value in world space
     hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
-    hit.n = transform * glm::vec4(glm::normalize(hit.p), 0.0f);
+    glm::vec3 nObj = glm::normalize(r.At(t));
+    hit.n = glm::normalize(glm::vec3(transform * glm::vec4(nObj, 0.0f)));
     hit.t = t;
     hit.materialId = materialId;
     

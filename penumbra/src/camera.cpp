@@ -9,9 +9,9 @@ Ray PerspectiveCamera::GenerateRay(float u, float v, int width, int height) cons
     float y = (h / 2.0f) - (h * v / height);
     float z = focalDistance;
     
+    glm::vec4 dirCam = glm::normalize(glm::vec4(x, y, z, 0.0f));
     glm::vec4 oWorld = cameraToWorld * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 dWorld = cameraToWorld * glm::vec4(x, y, z, 0.0f);
-    
+    glm::vec4 dWorld = cameraToWorld * dirCam;
     return Ray(oWorld, glm::normalize(glm::vec3(dWorld)));
 }
 
