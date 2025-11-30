@@ -58,7 +58,6 @@ bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
     for(Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
         HitInfo tmpHit;
-        
         if(shape->IntersectRay(rObj, tmpHit)) {
             if(tmpHit.t < closest) {
                 closest = tmpHit.t;
