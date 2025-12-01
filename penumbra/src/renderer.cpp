@@ -1,12 +1,10 @@
 #include "renderer.h"
 
-#include <random> // TODO: Remove
-
-#include "shading.h"
 #include "pbrtloader.h"
-
+#include "shading.h"
 
 Renderer::Renderer() {
+    sampler = Sampler(0);
     scene = std::make_unique<Scene>();
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
 }
@@ -51,6 +49,16 @@ void Renderer::BeginRender() {
 void Renderer::StopRender() {
 }
 
+float Renderer::TraceShadowRay(const Ray& ray, float maxDist) {
+    HitInfo hit;
+    if (IntersectRayScene(ray, hit)) {
+        if (hit.t < maxDist) {
+            return 0.0f;
+        }
+    }
+    return 1.0f;
+}
+
 bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
     bool hitAny = false;
 	float closest = FLT_MAX;
@@ -61,6 +69,7 @@ bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
 			float tWorld = glm::dot(tmpHit.p - ray.o, ray.d); 
             if(tWorld < closest) {
 				closest = tWorld;
+                tmpHit.t = tWorld;
                 hit = tmpHit;
                 hitAny = true;
             }
@@ -69,15 +78,36 @@ bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) {
     return hitAny;
 }
 
+glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int& depth) {
+    glm::vec3 color(0.0f);
+    // TODO: Russian Roulette
+    if (depth > BOUNCES) return color;
+
+    HitInfo hit;
+    if (IntersectRayScene(ray, hit)) {
+        Material* mat = scene->materials[hit.materialId];
+        Shading::BxDFSample sample = Shading::SampleMaterial(hit, mat, -ray.d, sampler);
+        Ray bounceRay = Ray(hit.p, sample.direction);
+        depth++;
+        for(Light* l : scene->lights){
+            float L = l->Illuminate(hit, *this);
+            glm::vec3 direct = L * Shading::ShadeMaterial(hit, mat, scene->lights);
+            glm::vec3 indirect = TracePath(bounceRay, sampler, depth) * (sample.color / sample.pdf);
+            color += direct + indirect;
+        }
+    }
+    return color;
+}
+
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
     Ray camRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
     
     HitInfo hit;
     if(IntersectRayScene(camRay, hit)) {
-		// Diffuse shading for testing
 		Material* mat = scene->materials[hit.materialId];
-		glm::vec3 color = Shading::ShadeMaterial(hit, mat, scene->lights);
+        int depth = 0;
+		glm::vec3 color = TracePath(camRay, sampler, depth);
 
 		int index = (v * renderWidth + u) * 3;
 		buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);

@@ -8,11 +8,12 @@
 #include "scene.h"
 #include "threading.h"
 #include "pbrtconverter.h"
+#include "sampling.h"
 
 #define PATHTRACING_SPP 0 
 #define MIN_SPP 1 
 #define MAX_SPP 8 
-#define BOUNCES 3 
+#define BOUNCES 128 
 #define PHOTON_MAX_BOUNCES 1000 
 #define SKIP_PHOTONMAP_DIRECT true
 #define SHADING_ERROR_THRESHOLD 1e-1f
@@ -27,6 +28,8 @@ public:
     bool SetPbrtScene(minipbrt::Scene* scene);
     void RenderPixel(int u, int v);
     bool IntersectRayScene(const Ray& ray, HitInfo& hitInfo);
+    float TraceShadowRay(const Ray& ray, float maxDist);
+    glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int& depth);
     void BeginRender();
     void StopRender();
     bool LoadScene(const std::string& filename);
@@ -35,6 +38,7 @@ public:
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
 
 private:
+    Sampler sampler;
     std::string sceneFilename;
     std::vector<uint8_t> renderBuffer;
     std::unique_ptr<Scene> scene;

@@ -49,8 +49,14 @@ Light* PbrtConverter::ConvertLight(minipbrt::Light* pbrtLight) {
         auto pbrtPointLight = static_cast<minipbrt::PointLight*>(pbrtLight);
         light = new PointLight(pbrtPointLight);
     } 
+    // if (pbrtLight->type() == minipbrt::AreaLight::type()) {
+    //     auto pbrtAreaLight = static_cast<minipbrt::AreaLight*>(pbrtLight);
+    //     light = new AreaLight(pbrtAreaLight);
+    // }
     return light;
 }
+
+
 
 Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
     if (!pbrtMat) return nullptr;

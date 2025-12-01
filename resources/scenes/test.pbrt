@@ -15,6 +15,7 @@ LightSource "point" "point from" [0.0 0.0 18.0] "rgb I" [5 5 5]
 AttributeBegin
   Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 0.0 24.0
+  Rotate 180 1 0 0
   Scale 64 64 64
   Shape "plymesh" "string filename" ["./resources/meshes/plane.obj"]
 AttributeEnd
@@ -23,7 +24,6 @@ AttributeEnd
 AttributeBegin
   Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 0.0 0.0
-  Rotate 90 0 0 1
   Scale 64 64 64
   Shape "plymesh" "string filename" ["./resources/meshes/plane.obj"]
 AttributeEnd
@@ -32,6 +32,7 @@ AttributeEnd
 AttributeBegin
   Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 20.0 12.0
+  Rotate 90 1 0 0
   Scale 64 64 64
   Shape "plymesh" "string filename" ["./resources/meshes/plane.obj"]
 AttributeEnd
