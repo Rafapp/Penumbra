@@ -14,10 +14,8 @@
 #define MIN_SPP 1 
 #define MAX_SPP 8 
 #define BOUNCES 128 
-#define PHOTON_MAX_BOUNCES 1000 
-#define SKIP_PHOTONMAP_DIRECT true
 #define SHADING_ERROR_THRESHOLD 1e-1f
-#define LIGHTING_ERROR_THRESHOLD 1e-8f
+#define LIGHTING_ERROR_THRESHOLD 1e-1f
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
 // inline unsigned int NTHREADS = 2;
 
@@ -45,7 +43,7 @@ private:
     minipbrt::Scene* pbrtScene = nullptr;
     std::unique_ptr<RenderThreadPool> threadPool;
 
-    // TODO: Grab from GUI
+    // TODO: Grab from GUI OR PBRT scene
     int renderWidth = 960;
     int renderHeight = 540;
     void ConvertPbrtScene();

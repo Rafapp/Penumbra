@@ -19,12 +19,18 @@ public:
     int GetAreaLightId() const { return areaLightId; }
     glm::mat4 GetTransform() const { return transform; }
     glm::mat4 GetInverseTransform() const { return inverseTransform; }
+    glm::vec3 GetPosition() const { return position; }
+    glm::vec3 GetScale() const { return scale; }
+    bool IsAreaLight() const { return areaLightId != minipbrt::kInvalidIndex; }
     
 protected:
     glm::mat4 transform;
     glm::mat4 inverseTransform;
+    glm::vec3 position;
+    glm::vec3 scale;
     int materialId = -1;
     int areaLightId = -1;
+    float surfaceArea = NAN;
 };
 
 class Sphere : public Shape {

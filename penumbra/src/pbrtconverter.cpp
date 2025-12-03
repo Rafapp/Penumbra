@@ -14,7 +14,8 @@ glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
             m[c][r] = t.start[r][c];
     return m;
 }
-
+// TODO: Instancing to reduce duplicate data in meshes
+// === Scene conversion ===
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
 
@@ -24,12 +25,18 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         if (shape) scene.shapes.push_back(shape);
     }
 
-    // Lights
-    for( auto pbrtLight : pbrtScene->lights) {
-        Light* light = ConvertLight(pbrtLight);
+    // Ideal lights
+    for( auto pbrtIdealLight : pbrtScene->lights) {
+        IdealLight* light = ConvertIdealLight(pbrtIdealLight);
         if (light) scene.lights.push_back(light);
     }
-    
+
+    // Area Lights
+    for( auto pbrtAreaLight : pbrtScene->areaLights) {
+        AreaLight* areaLight = ConvertAreaLight(pbrtAreaLight);
+        if (areaLight) scene.lights.push_back(areaLight);
+    }
+
     // Materials
     for (auto pbrtMat : pbrtScene->materials) {
         Material* material = ConvertMaterial(pbrtMat);
@@ -41,22 +48,28 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     return scene;
 }
 
-Light* PbrtConverter::ConvertLight(minipbrt::Light* pbrtLight) {
-    Light* light = nullptr;
+// === Primitive conversion ===
+IdealLight* PbrtConverter::ConvertIdealLight(minipbrt::Light* pbrtLight) {
+    IdealLight* light = nullptr;
 
     // Check light type and convert accordingly
     if (pbrtLight->type() == minipbrt::LightType::Point) {
         auto pbrtPointLight = static_cast<minipbrt::PointLight*>(pbrtLight);
         light = new PointLight(pbrtPointLight);
     } 
-    // if (pbrtLight->type() == minipbrt::AreaLight::type()) {
-    //     auto pbrtAreaLight = static_cast<minipbrt::AreaLight*>(pbrtLight);
-    //     light = new AreaLight(pbrtAreaLight);
-    // }
     return light;
 }
 
+AreaLight* PbrtConverter::ConvertAreaLight(minipbrt::AreaLight* pbrtAreaLight) {
+    AreaLight* areaLight = nullptr;
 
+    // Check area light type and convert accordingly
+    if(pbrtAreaLight->type() == minipbrt::AreaLightType::Diffuse) {
+        auto pbrtDiffuseAreaLight = static_cast<minipbrt::DiffuseAreaLight*>(pbrtAreaLight);
+        areaLight = new DiffuseAreaLight(pbrtDiffuseAreaLight);
+    }
+    return areaLight;
+}
 
 Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
     if (!pbrtMat) return nullptr;

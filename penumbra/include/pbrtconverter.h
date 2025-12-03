@@ -6,15 +6,17 @@
 class Scene;
 class Camera;
 class Shape;
-class Light;
 class Material;
 class TriangleMesh;
+class AreaLight;
+class IdealLight;
 
 namespace PbrtConverter {
     Scene ConvertScene(minipbrt::Scene* pbrtScene);
     Shape* ConvertShape(minipbrt::Shape* pbrtShape);
     Camera* ConvertCamera(minipbrt::Camera* pbrtCam);
-    Light* ConvertLight(minipbrt::Light* pbrtLight);
+    IdealLight* ConvertIdealLight(minipbrt::Light* pbrtLight);
+    AreaLight* ConvertAreaLight(minipbrt::AreaLight* pbrtAreaLight);
     Material* ConvertMaterial(minipbrt::Material* pbrtMat);
     TriangleMesh* ConvertTriangleMesh(minipbrt::TriangleMesh* pbrtMesh);
 

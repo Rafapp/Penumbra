@@ -83,40 +83,67 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int& depth) {
     // TODO: Russian Roulette
     if (depth > BOUNCES) return color;
 
-    HitInfo hit;
-    if (IntersectRayScene(ray, hit)) {
-        Material* mat = scene->materials[hit.materialId];
-        Shading::BxDFSample sample = Shading::SampleMaterial(hit, mat, -ray.d, sampler);
-        Ray bounceRay = Ray(hit.p, sample.direction);
-        depth++;
-        for(Light* l : scene->lights){
-            float L = l->Illuminate(hit, *this);
-            glm::vec3 direct = L * Shading::ShadeMaterial(hit, mat, scene->lights);
-            glm::vec3 indirect = TracePath(bounceRay, sampler, depth) * (sample.color / sample.pdf);
-            color += direct + indirect;
-        }
-    }
-    return color;
+//     HitInfo hit;
+//     if (!IntersectRayScene(ray, hit) && depth == 0) return color; // TODO: Environment color
+
+//     glm::vec3 directLight(0.0f);
+//     glm::vec3 indirectLight(0.0f);
+
+//     // === 1. Emission ===
+//     if (hit.areaLightId != minipbrt::kInvalidIndex) {
+//         AreaLight* areaLight = scene->areaLights[hit.areaLightId];
+//         return areaLight->Illuminated(hit, *this, *scene->shapes[hit.areaLightId]);
+//     }
+
+//     // === 2. Direct Lighting ===
+//     // Choose an area light
+//     int nLights = static_cast<int>(scene->lights.size());
+//     float pLight = 1.0f / nLights;
+//     int lightIdx = sampler.SampleInt(0, nLights - 1);
+//     AreaLight* areaLight = scene->areaLights[lightIdx];
+
+//     // Get a BXDF sample
+//     Material* mat = scene->materials[hit.materialId];
+//     Shading::BxDFSample sample = Shading::SampleMaterial(hit, mat, -ray.d, sampler);
+
+//     // Generate bounce ray using sampled direction
+//     Ray bounceRay = Ray(hit.p, sample.direction);
+//     if(!IntersectRayScene(bounceRay, hit)) return color;
+
+//     // If not in shadow, sample lighting
+//     glm::vec3 shadowFactor = areaLight->Illuminated(hit, *this, *scene->shapes[hit.areaLightId]);
+//     if(shadowFactor != glm::vec3(0.0f)) {
+//         Lights::LightSample lightSample = Lights::SampleAreaLight(areaLight, hit, *this);
+//         directLight += ; 
+//     }
+//     glm::vec3 direct = L * Shading::ShadeMaterial(hit, mat, scene->lights);
+//     glm::vec3 indirect = TracePath(bounceRay, sampler, depth) * (sample.color / sample.pdf);
+//     color += direct + indirect;
+        
+//     depth++;
+
+//     Lights::LightSample lightSample = Lights::SampleAreaLight(areaLight, hit);
+//     // PI * Surface Area * Emitted Radiance(I * shadow ray)
+//     indirectLight += lightSample.radiance * M_PI * areaLight->GetSurfaceArea();
+
+
+//    return color; 
 }
 
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
-    Ray camRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
-    
-    HitInfo hit;
-    if(IntersectRayScene(camRay, hit)) {
-		Material* mat = scene->materials[hit.materialId];
-        int depth = 0;
-		glm::vec3 color = TracePath(camRay, sampler, depth);
 
-		int index = (v * renderWidth + u) * 3;
-		buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
-		buffer[index + 1] = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
-		buffer[index + 2] = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
+    // Send primary ray to pathtrace
+    int depth = 0;
+    Ray camRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
+    glm::vec3 color = TracePath(camRay, sampler, depth);
+
+    // Write to buffer
+    int index = (v * renderWidth + u) * 3;
+    buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
+    buffer[index + 1] = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
+    buffer[index + 2] = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
         
-    } else {
-		// No hit, environment map
-    }
 }
 
 bool Renderer::LoadScene(const std::string& filename) {

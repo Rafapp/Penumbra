@@ -23,4 +23,5 @@ struct HitInfo{
     glm::vec3 n;
     bool front;
     int materialId = -1;
+    int areaLightId = -1;
 };

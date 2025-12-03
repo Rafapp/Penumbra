@@ -4,8 +4,7 @@
 #include "raytracing.h"
 #include "materials.h"
 #include "sampling.h"
-
-class Light;
+#include "lights.h"
 
 namespace Shading {
     struct BxDFSample {
@@ -13,9 +12,6 @@ namespace Shading {
         glm::vec3 color;      // f(wi, wo) * cos(theta)
         float pdf;            // Probability of this sample
     };
-
-    glm::vec3 SampleHemisphereUniform(const glm::vec3& normal, Sampler& sampler);
-    glm::vec3 SampleHemisphereCosine(const glm::vec3& normal, Sampler& sampler);
 
     BxDFSample SampleMaterial(const HitInfo& hit, Material* material, const glm::vec3& wi, Sampler& sampler);
     BxDFSample SampleMatte(const HitInfo& hit, MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler);

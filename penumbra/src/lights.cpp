@@ -6,21 +6,85 @@
 
 #define SHADOW_EPS 1e-4f
 
+// === Constructors ===
 PointLight::PointLight(minipbrt::PointLight* pbrtLight) {
     if (!pbrtLight) return;
     position = glm::vec3(pbrtLight->from[0], pbrtLight->from[1], pbrtLight->from[2]);  // Translation component
-    this->intensity = glm::vec3(pbrtLight->I[0], pbrtLight->I[1], pbrtLight->I[2]);
+    this->intensity= glm::vec3(pbrtLight->I[0], pbrtLight->I[1], pbrtLight->I[2]);
 }
 
-float PointLight::Illuminate(const HitInfo& hit, Renderer& renderer) {
+AreaLight::AreaLight(minipbrt::AreaLight* pbrtAreaLight) {
+    if (!pbrtAreaLight) return;
+    this->type = AreaLightType::Diffuse;
+    this->scale = glm::vec3(pbrtAreaLight->scale[0], pbrtAreaLight->scale[1], pbrtAreaLight->scale[2]);
+}
+
+DiffuseAreaLight::DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtDiffuseAreaLight) : AreaLight(pbrtDiffuseAreaLight){
+    if (!pbrtDiffuseAreaLight) return;
+    this->intensity= glm::vec3(pbrtDiffuseAreaLight->L[0], pbrtDiffuseAreaLight->L[1], pbrtDiffuseAreaLight->L[2]);
+    this->twoSided = pbrtDiffuseAreaLight->twosided;
+    this->samples = pbrtDiffuseAreaLight->samples;
+}
+
+// === Shadow Factor ===
+glm::vec3 PointLight::Illuminated(const HitInfo& hit, Renderer& renderer) {
     glm::vec3 toLight = position - hit.p;
     float dist = glm::length(toLight);
     Ray shadowRay(hit.p + hit.n * SHADOW_EPS, glm::normalize(toLight));
-    return renderer.TraceShadowRay(shadowRay, dist);
+    return renderer.TraceShadowRay(shadowRay, dist) * intensity;
 }
 
-AreaLight::AreaLight(minipbrt::AreaLight* pbrtLight) {
-    if (!pbrtLight) return;
-    pbrtLight->scale;
-    pbrtLight->type();
+glm::vec3 AreaLight::Illuminated(const HitInfo& hit, Renderer& renderer, Shape& shape) {
+    if(this->GetType() == AreaLightType::Diffuse) {
+        auto diffuseAreaLight = static_cast<DiffuseAreaLight*>(this);
+        return diffuseAreaLight->Illuminated(hit, renderer, shape);
+    }
+    // TODO: More area light types
+}
+
+glm::vec3 DiffuseAreaLight::Illuminated(const HitInfo& hit, Renderer& renderer, Shape& shape) {
+    glm::vec3 toLight = shape.GetPosition() - hit.p;
+    float dist = glm::length(toLight);
+    Ray shadowRay(hit.p + hit.n * SHADOW_EPS, glm::normalize(toLight));
+    return renderer.TraceShadowRay(shadowRay, dist) * intensity;
+}
+
+// === Radiance ===
+glm::vec3 IdealLight::GetRadiance(HitInfo& hit) {
+    return intensity;
+}
+
+glm::vec3 PointLight::GetRadiance(HitInfo& hit) {
+    float toLight = glm::length(position - hit.p);
+    return intensity / (toLight * toLight);
+}
+
+// === Namespace === (TODO: Move to class?)
+Lights::LightSample Lights::SampleIdealLight(IdealLight* light, HitInfo& hit, Renderer& renderer) {
+    Lights::LightSample sample;
+    if(light) {
+        sample.position = hit.p;
+        sample.normal = hit.n;
+        sample.radiance = light->GetRadiance(hit);
+        sample.pdf = 1.0f;
+    }
+    return sample;
+}
+
+Lights::LightSample Lights::SampleAreaLight(AreaLight* areaLight, HitInfo& hit, Renderer& renderer) {
+    Lights::LightSample sample;
+    // Sample according to area light type
+    if(areaLight->GetType() == AreaLightType::Diffuse) {
+        sample = SampleDiffuseAreaLight(static_cast<DiffuseAreaLight*>(areaLight), hit, renderer);
+    }
+    // TODO: More area light types
+    return sample;
+}
+
+Lights::LightSample Lights::SampleDiffuseAreaLight(DiffuseAreaLight* diffuseAreaLight, HitInfo& hit, Renderer& renderer) {
+    Lights::LightSample sample;
+    sample.position = hit.p;
+    sample.normal = hit.n;
+    // sample.radiance = diffuseAreaLight->GetRadiance(hit);
+    sample.pdf = 1.0f / diffuseAreaLight->GetSurfaceArea();
 }

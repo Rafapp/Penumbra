@@ -38,6 +38,7 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     hit.n = glm::normalize(glm::vec3(transform * glm::vec4(nObj, 0.0f)));
     hit.t = t;
     hit.materialId = materialId;
+    hit.areaLightId = areaLightId;
     
     return true;
 }
@@ -88,6 +89,7 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             hit.t = t;
             hit.front = glm::dot(hit.n, -r.d) > 0.0f;
             hit.materialId = materialId;
+            hit.areaLightId = areaLightId;
         }
     }
     return hitAny;
@@ -97,9 +99,19 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
 Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
     this->transform = PbrtConverter::TransformToMat4(pbrtSphere->shapeToWorld);
     this->inverseTransform = glm::inverse(this->transform);
+    this->position = glm::vec3(this->transform[3]);
+    this->scale = glm::vec3(
+        glm::length(glm::vec3(this->transform[0])),
+        glm::length(glm::vec3(this->transform[1])),
+        glm::length(glm::vec3(this->transform[2])));
     this->materialId = static_cast<int>(pbrtSphere->material);
     this->areaLightId = static_cast<int>(pbrtSphere->areaLight);
     this->radius = pbrtSphere->radius;
+
+    // Calculate surface area if sphere is area light
+    if(areaLightId != minipbrt::kInvalidIndex) {
+        this->surfaceArea = 4.0f * M_PI * radius * radius;
+    }
 }
 
 TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
@@ -118,8 +130,18 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
     }
     this->transform = PbrtConverter::TransformToMat4(plyMesh->shapeToWorld);
     this->inverseTransform = glm::inverse(this->transform);
+    this->position = glm::vec3(this->transform[3]);
+    this->scale = glm::vec3(
+        glm::length(glm::vec3(this->transform[0])),
+        glm::length(glm::vec3(this->transform[1])),
+        glm::length(glm::vec3(this->transform[2])));
     this->materialId = static_cast<int>(plyMesh->material);
     this->areaLightId = static_cast<int>(plyMesh->areaLight);
+
+    // TODO: Calculate surface area if mesh is area light
+    // if(areaLightId != minipbrt::kInvalidIndex) {
+    //     this->surfaceArea = 4.0f * M_PI * radius * radius;
+    // }
 }
 
 // === Mesh loading with Assimp ===
