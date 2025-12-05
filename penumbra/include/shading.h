@@ -6,6 +6,7 @@
 #include "sampling.h"
 #include "lights.h"
 
+// TODO: Do we need a namespace or should we have a class?
 namespace Shading {
     struct BxDFSample {
         glm::vec3 direction;  // Outgoing direction
@@ -13,9 +14,9 @@ namespace Shading {
         float pdf;            // Probability of this sample
     };
 
-    BxDFSample SampleMaterial(const HitInfo& hit, Material* material, const glm::vec3& wi, Sampler& sampler);
-    BxDFSample SampleMatte(const HitInfo& hit, MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler);
+    BxDFSample SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& wi, Sampler& sampler);
+    BxDFSample SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler);
 
-    glm::vec3 ShadeMaterial(const HitInfo& hit, Material* material, const std::vector<Light*>& lights);
-    glm::vec3 ShadeMatte(const HitInfo& hit, MatteMaterial* matte, const std::vector<Light*>& lights);
+    glm::vec3 ShadeMaterial(const HitInfo& hit, const Material* material, const Light* light);
+    glm::vec3 ShadeMatte(const HitInfo& hit, const MatteMaterial* matte, const Light* light);
 }

@@ -10,6 +10,7 @@ float Sampler::Sample1D() {
 }
 
 int Sampler::SampleInt(int min, int max) {
+    if (min >= max) return min;
     std::uniform_int_distribution<int> distribution(min, max - 1);
     return distribution(generator);
 }

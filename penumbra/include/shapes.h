@@ -30,7 +30,7 @@ protected:
     glm::vec3 scale;
     int materialId = -1;
     int areaLightId = -1;
-    float surfaceArea = NAN;
+    float surfaceArea = -1.0f;
 };
 
 class Sphere : public Shape {

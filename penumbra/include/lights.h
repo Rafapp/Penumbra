@@ -7,16 +7,27 @@
 
 class Renderer;
 
+struct LightSample{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec3 radiance;
+    float pdf;
+};
+
 // TODO: Polymorphism might not be ideal
-class Light{};
+class Light{
+public:
+    virtual ~Light() = default;
+};
 
 // === Ideal lights ===
 class IdealLight : public Light {
 public:
     virtual ~IdealLight() = default;
     
-    virtual glm::vec3 Illuminated(const HitInfo& hit, Renderer& renderer) = 0;
-    virtual glm::vec3 GetRadiance(HitInfo& hit);
+    virtual glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer) = 0;
+    virtual glm::vec3 GetRadiance(const HitInfo& hit) = 0;
+    virtual LightSample Sample(const HitInfo& hit, const Renderer& renderer) = 0;
     glm::vec3 GetPosition() const { return position; }
 
 protected:
@@ -29,8 +40,9 @@ public:
     PointLight(minipbrt::PointLight* pbrtLight);
     ~PointLight() = default;
 
-    glm::vec3 Illuminated(const HitInfo& hit, Renderer& renderer) override;
-    glm::vec3 GetRadiance(HitInfo& hit) override;
+    LightSample Sample(const HitInfo& hit, const Renderer& renderer) override;
+    glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer) override;
+    glm::vec3 GetRadiance(const HitInfo& hit) override;
 };
 
 // === Area lights ===
@@ -47,7 +59,9 @@ public:
 
     AreaLightType GetType() const { return type; }
 
-    virtual glm::vec3 Illuminated(const HitInfo& hit, Renderer& renderer, Shape& shape) = 0;
+    virtual LightSample Sample(const HitInfo& hit, const Renderer& renderer) = 0;
+    virtual glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) = 0;
+    virtual glm::vec3 GetRadiance(const HitInfo& hit) = 0;
 private:
     AreaLightType type;
     glm::vec3 scale;
@@ -58,24 +72,13 @@ public:
     DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtAreaLight);
     ~DiffuseAreaLight() = default;
 
-    glm::vec3 Illuminated(const HitInfo& hit, Renderer& renderer, Shape& shape) override;
+    LightSample Sample(const HitInfo& hit, const Renderer& renderer) override;
+    glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) override;
+    glm::vec3 GetRadiance(const HitInfo& hit) override;
     float GetSurfaceArea() const { return surfaceArea; }
 private:
     glm::vec3 intensity;
     bool twoSided;
     int samples;
     float surfaceArea;
-};
-
-namespace Lights{
-    struct LightSample{
-        glm::vec3 position;
-        glm::vec3 normal;
-        glm::vec3 radiance;
-        float pdf;
-    };
-    LightSample SampleIdealLight(IdealLight* light, HitInfo& hit, Renderer& renderer);
-    LightSample SampleAreaLight(AreaLight* areaLight, HitInfo& hit, Renderer& renderer);
-    LightSample SampleDiffuseAreaLight(DiffuseAreaLight* diffuseAreaLight, HitInfo& hit, Renderer& renderer);
-
 };

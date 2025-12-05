@@ -25,16 +25,22 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         if (shape) scene.shapes.push_back(shape);
     }
 
-    // Ideal lights
-    for( auto pbrtIdealLight : pbrtScene->lights) {
-        IdealLight* light = ConvertIdealLight(pbrtIdealLight);
-        if (light) scene.lights.push_back(light);
-    }
-
-    // Area Lights
+    // Area Lights (index matters)
     for( auto pbrtAreaLight : pbrtScene->areaLights) {
         AreaLight* areaLight = ConvertAreaLight(pbrtAreaLight);
-        if (areaLight) scene.lights.push_back(areaLight);
+        if (areaLight) {
+            scene.lights.push_back(areaLight);
+            std::cout << "Converted area light, total: " << scene.lights.size() << std::endl;
+        }
+    }
+
+    // Ideal lights
+    for( auto pbrtIdealLight : pbrtScene->lights) {
+        IdealLight* idealLight = ConvertIdealLight(pbrtIdealLight);
+        if (idealLight) {
+            scene.lights.push_back(idealLight);
+            std::cout << "Converted ideal light, total: " << scene.lights.size() << std::endl;
+        }
     }
 
     // Materials

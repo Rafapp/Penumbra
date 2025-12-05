@@ -45,7 +45,7 @@ FetchContent_Declare(assimp
 FetchContent_Declare(
   minipbrt
   GIT_REPOSITORY https://github.com/vilya/minipbrt.git
-  GIT_TAG master
+  GIT_TAG a6f9dadb55dae3a8a051c66863fe9b2622f8c7b3
 )
 
 # OpenImageIO - Image Input/Output 
@@ -54,7 +54,7 @@ find_package(OpenImageIO REQUIRED)
 # TinyBVH - Acceleration Structures
 FetchContent_Declare(tinybvh
   GIT_REPOSITORY https://github.com/jbikker/tinybvh.git
-  GIT_TAG main
+  GIT_TAG 4b5b649f1193374762b0247ee20de3345633bf9b 
 )
 
 # GLM - Math
