@@ -2,8 +2,8 @@
 
 #include <filesystem>
 
-#define SPHERE_EPS 1e-8f
-#define TRI_EPS 1e-8f
+#define SPHERE_EPS 1e-4f
+#define TRI_EPS 1e-4f
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {

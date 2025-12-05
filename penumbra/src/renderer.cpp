@@ -48,9 +48,10 @@ void Renderer::BeginRender() {
 void Renderer::StopRender() {
 }
 
-float Renderer::TraceShadowRay(const Ray& ray, float maxDist) const {
+float Renderer::TraceShadowRay(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const {
     HitInfo hit;
-    if (IntersectRayScene(ray, hit)) {
+    Ray shadowRay = Ray(o + n * SHADOW_EPS, d); 
+    if (IntersectRayScene(shadowRay, hit)) {
         if (hit.t < maxDist) {
             return 0.0f;
         }
@@ -143,12 +144,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     // If unoccluded, evaluate BxDF and accumulate direct lighting
     // TODO: Update Illuminated() to support this directly via polymorphism
     glm::vec3 toLight = randomLightSample.position - hit.p;
-    Ray shadowRay = Ray(hit.p, toLight); 
-    if(TraceShadowRay(shadowRay, glm::length(toLight)) != 0.0f ){
+    if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
         float directLightPdf = randomLightSample.pdf * pLight;
         float directLightPower = glm::pow(directLightPdf, beta);
 
-        Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, shadowRay.d, sampler);
+        Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, glm::normalize(toLight), sampler);
         float bxdfDirectLightPdf = glm::pow(bxdfDirectLightSample.pdf, beta);
 
         float misWeightDirect = (directLightPower / (directLightPower + bxdfDirectLightPdf));

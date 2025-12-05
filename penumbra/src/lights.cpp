@@ -4,8 +4,6 @@
 #include "pbrtconverter.h"
 #include "renderer.h"
 
-#define SHADOW_EPS 1e-4f
-
 // === Constructors ===
 PointLight::PointLight(minipbrt::PointLight* pbrtLight) {
     if (!pbrtLight) return;
@@ -30,8 +28,7 @@ DiffuseAreaLight::DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtDiffuseAreaLi
 glm::vec3 PointLight::Illuminated(const HitInfo& hit, const Renderer& renderer) {
     glm::vec3 toLight = position - hit.p;
     float dist = glm::length(toLight);
-    Ray shadowRay(hit.p + hit.n * SHADOW_EPS, glm::normalize(toLight));
-    return renderer.TraceShadowRay(shadowRay, dist) * intensity;
+    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * intensity;
 }
 
 glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
@@ -45,8 +42,7 @@ glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, c
 glm::vec3 DiffuseAreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
     glm::vec3 toLight = shape.GetPosition() - hit.p;
     float dist = glm::length(toLight);
-    Ray shadowRay(hit.p + hit.n * SHADOW_EPS, glm::normalize(toLight));
-    return renderer.TraceShadowRay(shadowRay, dist) * intensity;
+    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * intensity;
 }
 
 // === Radiance ===
