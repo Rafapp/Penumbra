@@ -9,6 +9,28 @@ float Sampler::Sample1D() {
     return distribution(generator);
 }
 
+inline float Halton(uint32_t i, uint32_t base) {
+    float f = 1.0f / base;
+    float result = 0.0f;
+    while (i > 0) {
+        result += f * (i % base);
+        i /= base;
+        f /= base;
+    }
+    return result;
+}
+
+// TODO: Precompute and cache
+glm::vec2 Sampler::SampleHalton2D(uint32_t b1, uint32_t b2, uint32_t index) {
+    float u = Sample1D();
+    float v = Sample1D();
+    float x = Halton(index, b1) + u;
+    x = x - int(x);
+    float y = Halton(index, b2) + v;
+    y = y - int(y);
+    return glm::vec2(x, y);
+}
+
 int Sampler::SampleInt(int min, int max) {
     if (min >= max) return min;
     std::uniform_int_distribution<int> distribution(min, max - 1);

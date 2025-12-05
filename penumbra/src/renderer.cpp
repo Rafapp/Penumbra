@@ -82,7 +82,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     glm::vec3 color(0.0f);
 
     // Cutoff
-    if (depth > BOUNCES) {
+    if (depth > MAX_BOUNCES) {
         return color;
     }
 
@@ -191,18 +191,28 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
 
-    // Send primary ray to pathtrace
-    int depth = 0;
-    Ray camRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
     Sampler sampler(u * renderWidth + v);
-    glm::vec3 color = TracePath(camRay, sampler, depth);
+    glm::vec3 color(0.0f);
+    int depth = 0;
 
+    // Multi-sampling
+    for(int i = 0; i < SPP; i++){
+        // Generate halton jittered pixel coordinates
+        glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
+
+        // Send primary rays to pathtrace
+        Ray camRay = scene->camera->GenerateRay(u + jitter.x, v + jitter.y, renderWidth, renderHeight);
+        color += TracePath(camRay, sampler, depth);
+    }
+
+    // Average
+    color /= float(SPP);
+    
     // Write to buffer
     int index = (v * renderWidth + u) * 3;
     buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
     buffer[index + 1] = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
     buffer[index + 2] = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
-        
 }
 
 bool Renderer::LoadScene(const std::string& filename) {

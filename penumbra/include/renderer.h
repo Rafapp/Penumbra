@@ -10,13 +10,15 @@
 #include "pbrtconverter.h"
 #include "sampling.h"
 
+// TODO: Adaptive SPP
+// #define MIN_SPP 1 
+// #define MAX_SPP 8 
+// #define SHADING_ERROR_THRESHOLD 1e-1f
+// #define LIGHTING_ERROR_THRESHOLD 1e-1f
+
 #define SHADOW_EPS 1e-4f
-#define PATHTRACING_SPP 0 
-#define MIN_SPP 1 
-#define MAX_SPP 8 
-#define BOUNCES 2048 
-#define SHADING_ERROR_THRESHOLD 1e-1f
-#define LIGHTING_ERROR_THRESHOLD 1e-1f
+#define SPP 256 
+#define MAX_BOUNCES 32 
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
 // inline unsigned int NTHREADS = 2;
 

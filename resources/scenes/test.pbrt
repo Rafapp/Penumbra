@@ -7,7 +7,7 @@ Camera "perspective" "float fov" [30] "float focaldistance" [1] "float lensradiu
 
 WorldBegin
 
-LightSource "point" "point from" [0.0 0.0 18.0] "rgb I" [500 500 500]
+LightSource "point" "point from" [0.0 0.0 18.0] "rgb I" [100 100 100]
 
 # === Planes ===
 

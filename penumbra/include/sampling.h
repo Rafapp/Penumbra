@@ -10,6 +10,7 @@ public:
     glm::vec3 SampleHemisphere();
     float Sample1D();
     int SampleInt(int min, int max);
+    glm::vec2 SampleHalton2D(uint32_t b1, uint32_t b2, uint32_t index);
     glm::vec3 SampleHemisphereUniform(const glm::vec3& normal);
     glm::vec3 SampleHemisphereCosine(const glm::vec3& normal);
     glm::vec2 SampleUnitDisk();
