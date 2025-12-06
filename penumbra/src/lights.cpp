@@ -102,7 +102,7 @@ float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const 
     if (sphere) {
         Ray r(hit.p, wo);
         HitInfo lightHit;
-        if (!renderer.IntersectRayScene(r,lightHit)) return 0.0f;
+        if (!renderer.TraceRay(r,lightHit)) return 0.0f;
 
         float dist2 = lightHit.t * lightHit.t;
         glm::vec3 n = lightHit.n;

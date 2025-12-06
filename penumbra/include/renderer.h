@@ -29,7 +29,7 @@ public:
     ~Renderer();
     bool SetPbrtScene(minipbrt::Scene* scene);
     void RenderPixel(int u, int v);
-    bool IntersectRayScene(const Ray& ray, HitInfo& hit) const;
+    bool TraceRay(const Ray& ray, HitInfo& hit) const;
     float TraceShadowRay(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
     glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth);
     void BeginRender();

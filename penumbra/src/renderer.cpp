@@ -55,25 +55,23 @@ void Renderer::StopRender() {
 float Renderer::TraceShadowRay(const glm::vec3& p, const glm::vec3& wi, const glm::vec3& n, float maxDist) const {
     HitInfo hit;
     Ray shadowRay = Ray(p + n * SHADOW_EPS, wi);
-    if (IntersectRayScene(shadowRay, hit)) {
-        if (hit.t < maxDist) {
+    if (TraceRay(shadowRay, hit)) {
+        if (hit.t < maxDist - SHADOW_EPS) {
             return 0.0f;
         }
     }
     return 1.0f;
 }
 
-bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) const {
+bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
     bool hitAny = false;
 	float closest = FLT_MAX;
     for(Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
         HitInfo tmpHit;
         if(shape->IntersectRay(rObj, tmpHit)) {
-			float tWorld = glm::dot(tmpHit.p - ray.o, ray.d); 
-            if(tWorld < closest) {
-				closest = tWorld;
-                tmpHit.t = tWorld;
+            if(tmpHit.t < closest) {
+				closest = tmpHit.t;
                 tmpHit.shape = shape;
                 tmpHit.material = shape->material;
                 tmpHit.areaLight = shape->areaLight;
@@ -107,7 +105,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
 
     // Trace ray
     HitInfo hit;
-    if (!IntersectRayScene(ray, hit)) {
+    if (!TraceRay(ray, hit)) {
         return glm::vec3(0.0f);  // TODO: Environment mapping
     }
 
@@ -172,6 +170,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
         glm::vec3 toLight = randomAreaLightSample.p - hit.p;
         float d = glm::length(toLight);
         glm::vec3 wi = toLight / d;
+        return Shading::ShadeMaterial(hit, wi, mat);
         if(TraceShadowRay(hit.p, wi, hit.n, d) != 0.0f){
             float d2 = glm::pow(d, 2);
             float gHit = glm::dot(hit.n, wi);
@@ -179,7 +178,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
             if(!(gHit <= 0.0f || gLight <= 0.0f)){
                 float G = glm::dot(hit.n, wi) * glm::dot(randomAreaLightSample.n, -wi) / d2;
                 directLight += randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) * G / (pLight * randomAreaLightSample.pdf);
-                std::cout << "direct: " << directLight.x << ", " << directLight.y << ", " << directLight.z << std::endl;
+                return directLight;
             }
         }
     }

@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #define SPHERE_EPS 1e-8f
-#define TRI_EPS 1e-1f
+#define TRI_EPS 1e-8f
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
@@ -32,11 +32,16 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
         return false;
     }
     
-    // Compute hit point, normal, and t value in world space
+    // Compute hit point, normal, and t value
     hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
+
     glm::vec3 nObj = glm::normalize(r.At(t));
     hit.n = glm::normalize(glm::vec3(transform * glm::vec4(nObj, 0.0f)));
-    hit.t = t;
+
+    glm::vec3 oWorld = glm::vec3(transform * glm::vec4(r.o, 1.0f));
+    float tWorld = glm::length(hit.p - oWorld);
+    hit.t = tWorld;
+
     hit.materialId = materialId;
     hit.areaLightId = areaLightId;
     hit.shape = this;
@@ -81,14 +86,19 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             closest = t;
 
             // Compute hit point, normal, and t value in world space
-            hit.p = transform * glm::vec4(r.At(t), 1.0f);
+            hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
+
             glm::vec3 n0 = normals[triangles[i].x];
             glm::vec3 n1 = normals[triangles[i].y];
             glm::vec3 n2 = normals[triangles[i].z];
             glm::vec3 nObj = glm::normalize((1 - u - v)*n0 + u*n1 + v*n2);
             glm::mat3 normalMatrix = glm::transpose(glm::mat3(inverseTransform));
             hit.n = glm::normalize(normalMatrix * nObj);
-            hit.t = t;
+
+            glm::vec3 oWorld = glm::vec3(transform * glm::vec4(r.o, 1.0f));
+            float tWorld = glm::length(hit.p- oWorld);
+            hit.t = tWorld;
+
             hit.front = glm::dot(hit.n, -r.d) > 0.0f;
             hit.materialId = materialId;
             hit.areaLightId = areaLightId;
