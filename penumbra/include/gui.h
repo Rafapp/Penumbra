@@ -25,6 +25,7 @@ public:
 
     int GetRenderWidth() const { return renderWidth; }
     int GetRenderHeight() const { return renderHeight; }
+    int GetSPP() const { return spp; }
 
 private:
     std::function<void()> renderCallback;
@@ -32,6 +33,7 @@ private:
     ImFont* font;
     int renderWidth = 960;
     int renderHeight = 540;
+    int spp = 1;
 
     void SetupImGuiStyle();
 };

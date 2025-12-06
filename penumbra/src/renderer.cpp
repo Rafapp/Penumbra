@@ -31,6 +31,7 @@ bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
 }
 
 void Renderer::BeginRender() {
+    if(threadPool) threadPool->Stop();
     std::cout << "Starting render ..." << std::endl;
     
     // Reload scene
@@ -40,10 +41,10 @@ void Renderer::BeginRender() {
     }
     renderWidth = gui->GetRenderWidth();
     renderHeight = gui->GetRenderHeight();
+    spp = gui->GetSPP();
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
 
-    if(threadPool) threadPool->Reset();
     threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
     threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
 }
@@ -234,7 +235,7 @@ void Renderer::RenderPixel(int u, int v) {
     int depth = 0;
 
     // Multi-sampling
-    for(int i = 0; i < SPP; i++){
+    for(int i = 0; i < spp; i++){
         // Generate halton jittered pixel coordinates
         glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
 
@@ -244,7 +245,7 @@ void Renderer::RenderPixel(int u, int v) {
     }
 
     // Average
-    color /= float(SPP);
+    color /= float(spp);
     
     // Write to buffer
     int index = (v * renderWidth + u) * 3;

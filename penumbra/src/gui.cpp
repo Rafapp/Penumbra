@@ -72,13 +72,21 @@ void GUI::Render() {
             if (ImGui::CollapsingHeader("Resolution")) {
                 ImGui::Text("Render Width");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputInt("##RenderWidth", &renderWidth);
-
+                ImGui::InputInt("##RenderWidth", &renderWidth, 0, 0);
                 ImGui::Text("Render Height");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputInt("##RenderHeight", &renderHeight);
+                ImGui::InputInt("##RenderHeight", &renderHeight, 0, 0);
             }
 
+            ImGui::Unindent(20.0f);
+
+            ImGui::Indent(20.0f);
+            // Sampling 
+            if (ImGui::CollapsingHeader("Sampling")) {
+                ImGui::Text("Samples per Pixel");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::InputInt("##SamplesPerPixel", &spp, 0, 0);
+            }
             ImGui::Unindent(20.0f);
         }
 

@@ -18,7 +18,6 @@
 // #define LIGHTING_ERROR_THRESHOLD 1e-1f
 
 #define SHADOW_EPS 1e-4f
-#define SPP 1 
 #define MAX_BOUNCES 0 
 #define INF_BOUNCES true
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
@@ -53,6 +52,7 @@ private:
 
     // GUI Variables
     GUI* gui = nullptr;
+    int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
 
