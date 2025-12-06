@@ -176,16 +176,14 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
         float d = glm::length(toLight);
         glm::vec3 wi = toLight / d;
         if(!Occluded(hit.p, wi, hit.n, d)){
-            return Shading::ShadeMaterial(hit, wi, mat);
-            float d2 = glm::pow(d, 2);
-            float gHit = glm::dot(hit.n, wi);
-            float gLight = glm::dot(randomAreaLightSample.n, -wi);
-            if(!(gHit <= 0.0f || gLight <= 0.0f)){
-                float G = glm::dot(hit.n, wi) * glm::dot(randomAreaLightSample.n, -wi) / d2;
-                directLight += randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) * G / (pLight * randomAreaLightSample.pdf);
+            float cosHit = glm::dot(hit.n, wi);
+            if (cosHit > 0.0f) {
+                float G = cosHit / d;
+                directLight += G * randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) / (pLight * randomAreaLightSample.pdf);
                 return directLight;
             }
         }
+
     }
     
     // ============================
@@ -228,17 +226,14 @@ void Renderer::RenderPixel(int u, int v) {
     glm::vec3 color(0.0f);
     int depth = 0;
 
-    // Supersampling
     for(int i = 0; i < spp; i++){
-        // Generate halton jittered pixel coordinates
         glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
-
-        // Send primary rays to pathtrace
         Ray camRay = scene->camera->GenerateRay(u + jitter.x, v + jitter.y, renderWidth, renderHeight);
-        color += TracePath(camRay, sampler, depth);
+        glm::vec3 sample = TracePath(camRay, sampler, depth);
+        color += sample;
     }
 
-    // Average
+    // Average over samples
     color /= float(spp);
     
     // Write to buffer

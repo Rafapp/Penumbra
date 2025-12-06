@@ -76,21 +76,20 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const
 
     const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
     if (sphere) {
-        glm::vec3 p = sphere->GetPosition();
         float r = sphere->GetRadius();
-        glm::vec3 n = sampler.SampleSphereUniform();
-        glm::vec3 nWorld = glm::normalize(glm::vec3(shape.GetTransform() * glm::vec4(n, 0.0f)));
+        glm::vec3 p = shape.GetPosition();
+        glm::vec3 n = sampler.SampleHemisphereUniform(glm::normalize(hit.p - p));
         glm::vec3 x = p + r * n;
-        glm::vec3 xWorld = glm::vec3(shape.GetTransform() * glm::vec4(x, 1.0f));
 
-        sample.p = xWorld;
-        sample.n = nWorld;
+        sample.p = x;
+        sample.n = n;
         sample.L = GetRadiance(hit, shape);
-        sample.pdf = 1.0f / (4.0f * M_PI * r * r);
+        sample.pdf = 1.0f / (2.0f * M_PI);
         return sample;
     }
 
     //  TODO: Implement other shape types
+    std::cerr << "Warning: DiffuseAreaLight::Sample not implemented for this shape type. Returning default sample." << std::endl;
     sample.p = shape.GetPosition();
     sample.n = hit.n;
     sample.L = radiance;
