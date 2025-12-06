@@ -7,7 +7,15 @@ Camera "perspective" "float fov" [30] "float focaldistance" [1] "float lensradiu
 
 WorldBegin
 
-LightSource "point" "point from" [0.0 0.0 18.0] "rgb I" [100 100 100]
+# LightSource "point" "point from" [0.0 0.0 18.0] "rgb I" [100 100 100]
+
+# === Lights ===
+AttributeBegin
+  Translate 0.0 0.0 20.0
+  Scale 1.0 1.0 1.0
+	AreaLightSource "diffuse" "rgb L" [100 100 100]
+  Shape "sphere" "float radius" [1.0]
+AttributeEnd
 
 # === Planes ===
 

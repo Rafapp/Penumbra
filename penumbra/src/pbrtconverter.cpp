@@ -19,18 +19,45 @@ glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
 
-    // Shapes
-    for (auto pbrtShape : pbrtScene->shapes) {
-        Shape* shape = ConvertShape(pbrtShape);
-        if (shape) scene.shapes.push_back(shape);
+    // Materials (first)
+    for (auto pbrtMat : pbrtScene->materials) {
+        Material* material = ConvertMaterial(pbrtMat);
+        if (material) scene.materials.push_back(material);
     }
 
-    // Area Lights (index matters)
-    for( auto pbrtAreaLight : pbrtScene->areaLights) {
+    // Area Lights (second)
+    for (auto pbrtAreaLight : pbrtScene->areaLights) {
         AreaLight* areaLight = ConvertAreaLight(pbrtAreaLight);
         if (areaLight) {
             scene.lights.push_back(areaLight);
             std::cout << "Converted area light, total: " << scene.lights.size() << std::endl;
+        }
+    }
+
+    // Shapes (third)
+    for (auto pbrtShape : pbrtScene->shapes) {
+        Shape* shape = ConvertShape(pbrtShape);
+        if (shape) {
+            scene.shapes.push_back(shape);
+            uint32_t lightIdx = pbrtShape->areaLight;
+            if (lightIdx != minipbrt::kInvalidIndex) {
+                AreaLight* areaLight = static_cast<AreaLight*>(scene.lights[lightIdx]);
+                if (areaLight) {
+                    areaLight->shape = shape;
+                    shape->areaLight = areaLight;
+                } else {
+                    throw std::runtime_error("Area light index " + std::to_string(lightIdx) + " not found for shape.");
+                }
+            }
+            uint32_t matIdx = pbrtShape->material;
+            if (matIdx != minipbrt::kInvalidIndex) {
+                Material* material = scene.materials[matIdx];
+                if (material) {
+                    shape->material = material;
+                } else {
+                    throw std::runtime_error("Material index " + std::to_string(matIdx) + " not found for shape.");
+                }
+            }
         }
     }
 
@@ -41,12 +68,6 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
             scene.lights.push_back(idealLight);
             std::cout << "Converted ideal light, total: " << scene.lights.size() << std::endl;
         }
-    }
-
-    // Materials
-    for (auto pbrtMat : pbrtScene->materials) {
-        Material* material = ConvertMaterial(pbrtMat);
-        if (material) scene.materials.push_back(material);
     }
 
     // Camera

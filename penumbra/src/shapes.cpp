@@ -39,7 +39,9 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     hit.t = t;
     hit.materialId = materialId;
     hit.areaLightId = areaLightId;
-    
+    hit.shape = this;
+    hit.material = material;
+
     return true;
 }
 
@@ -90,6 +92,8 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             hit.front = glm::dot(hit.n, -r.d) > 0.0f;
             hit.materialId = materialId;
             hit.areaLightId = areaLightId;
+            hit.shape = this;
+            hit.material = material;
         }
     }
     return hitAny;

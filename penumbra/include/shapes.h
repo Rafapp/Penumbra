@@ -22,7 +22,8 @@ public:
     glm::vec3 GetPosition() const { return position; }
     glm::vec3 GetScale() const { return scale; }
     bool IsAreaLight() const { return areaLightId != minipbrt::kInvalidIndex; }
-    
+    AreaLight* areaLight = nullptr;
+    Material* material = nullptr;
 protected:
     glm::mat4 transform;
     glm::mat4 inverseTransform;
@@ -37,6 +38,7 @@ class Sphere : public Shape {
 public:
     Sphere(minipbrt::Sphere* pbrtSphere);
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
+    float GetRadius() const { return radius; }
 private:
     float radius = 1.0f;
 };

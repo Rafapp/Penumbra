@@ -20,13 +20,18 @@ public:
     void Render();
     
     void SetRenderCallback(std::function<void()> callback) {
-        m_renderCallback = callback;
+        renderCallback = callback;
     }
 
+    int GetRenderWidth() const { return renderWidth; }
+    int GetRenderHeight() const { return renderHeight; }
+
 private:
-    std::function<void()> m_renderCallback;
+    std::function<void()> renderCallback;
     GLFWwindow* m_window;
-    ImFont* m_font;
+    ImFont* font;
+    int renderWidth = 960;
+    int renderHeight = 540;
 
     void SetupImGuiStyle();
 };

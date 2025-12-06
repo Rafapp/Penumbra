@@ -19,33 +19,35 @@ public:
     bool ShouldClose() const;
     void PollEvents();
 
-    int GetWidth() const { return m_width; }
-    int GetHeight() const { return m_height; }
+    int GetWidth() const { return width; }
+    int GetHeight() const { return height; }
 
     void UpdateTexture(const std::vector<uint8_t>& pixels, int w, int h);
 
     static void ResizeCallbackStatic(GLFWwindow* window, int w, int h);
     void ResizeCallback(GLFWwindow* window, int w, int h);
 
-    std::vector<uint8_t>& GetWindowBuffer(){ return m_windowBuffer; }
+    std::vector<uint8_t>& GetWindowBuffer(){ return windowBuffer; }
     
 private:
-    GLFWwindow* m_window;
-    int m_width = 0;
-    int m_height = 0;
-    int rendererWidth = 0;
-    int rendererHeight = 0;
-    std::vector<uint8_t> m_windowBuffer;
-    GLuint m_texture = 0;
-    GLuint m_program = 0;
-    GLuint m_vao = 0;
-    GLuint m_vbo;
-    GLuint m_uniformTexLocation = 0;
-    GLint m_uniformScaleLocation = 0;
-    float m_scaleX = 1.0f, m_scaleY = 1.0f;
+    GLFWwindow* window;
+    int width = 0;
+    int height = 0;
+    int viewportRenderWidth = 0;
+    int viewportRenderHeight = 0;
+    std::vector<uint8_t> windowBuffer;
+    GLuint texture = 0;
+    GLuint program = 0;
+    GLuint vao = 0;
+    GLuint vbo;
+    GLuint uniformTexLocation = 0;
+    GLint uniformScaleLocation = 0;
+    float scaleX = 1.0f, m_scaleY = 1.0f;
+    int texWidth = 0;
+    int texHeight = 0;
 
     GLuint compileShader(const char* source, GLenum type);
     void createShaderProgram();
 
-    std::unique_ptr<GUI> m_gui;
+    std::unique_ptr<GUI> gui;
 };

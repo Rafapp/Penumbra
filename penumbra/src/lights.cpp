@@ -55,15 +55,13 @@ glm::vec3 PointLight::GetRadiance(const HitInfo& hit) {
     return intensity / (toLight * toLight);
 }
 
-glm::vec3 DiffuseAreaLight::GetRadiance(const HitInfo& hit) {
-    // TODO: Implement
-    // float toLight = glm::length(getP- hit.p);
-    // return intensity / (toLight * toLight);
-    return glm::vec3(0.0f);
+// TODO: Remove shape arg?
+glm::vec3 DiffuseAreaLight::GetRadiance(const HitInfo& hit, const Shape& shape) {
+   return intensity; 
 }
 
 // === Sampling === 
-LightSample PointLight::Sample(const HitInfo& hit, const Renderer& renderer) {
+LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
     LightSample sample;
     sample.position = position;
     sample.normal = hit.n;
@@ -72,10 +70,50 @@ LightSample PointLight::Sample(const HitInfo& hit, const Renderer& renderer) {
     return sample;
 }
 
-LightSample DiffuseAreaLight::Sample(const HitInfo& hit, const Renderer& renderer) {
+LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) {
     LightSample sample;
-    sample.position = hit.p;
-    sample.normal = hit.n;
-    sample.radiance = GetRadiance(hit);
-    sample.pdf = 1.0f / GetSurfaceArea(); // TODO: Correct with rejection sampling etc.
+
+    const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
+    if (sphere) {
+        glm::vec3 center = sphere->GetPosition();
+        float radius = sphere->GetRadius();
+        glm::vec3 dir = sampler.SampleSphereUniform();
+        glm::vec3 lightPoint = center + radius * dir;
+        sample.position = lightPoint;
+        sample.normal = dir;
+        sample.radiance = intensity;
+        sample.pdf = 1.0f / (4.0f * M_PI * radius * radius);
+        return sample;
+    }
+
+    //  TODO: Implement other shape types
+    sample.position = shape.GetPosition();
+    sample.normal   = hit.n;
+    sample.radiance = intensity;
+    sample.pdf      = 1.0f;
+    return sample;
+}
+
+// === PDFs ===
+float PointLight::Pdf(const HitInfo& hit, const glm::vec3& wo) const {
+    return 0.0f;
+}
+
+float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const {
+    const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
+    if (sphere) {
+        Ray r(hit.p, wo);
+        HitInfo lightHit;
+        if (!renderer.IntersectRayScene(r,lightHit)) return 0.0f;
+
+        float dist2 = lightHit.t * lightHit.t;
+        glm::vec3 n = lightHit.n;
+        float cosLight = glm::dot(-wo, n);
+        if (cosLight <= 0.0f) return 0.0f;
+
+        if (renderer.TraceShadowRay(hit.p, wo, hit.n, lightHit.t) == 0.0f) return 0.0f;
+
+        return (1.0f / surfaceArea) * dist2 / cosLight;
+    }
+    return 0.0f;
 }

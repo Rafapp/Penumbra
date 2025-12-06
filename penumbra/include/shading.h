@@ -17,6 +17,9 @@ namespace Shading {
     BxDFSample SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& wi, Sampler& sampler);
     BxDFSample SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler);
 
-    glm::vec3 ShadeMaterial(const HitInfo& hit, const Material* material, const Light* light);
-    glm::vec3 ShadeMatte(const HitInfo& hit, const MatteMaterial* matte, const Light* light);
+    glm::vec3 ShadeMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* material);
+    glm::vec3 ShadeMatte(const HitInfo& hit, const glm::vec3& wi, const MatteMaterial* matte);
+
+    float PdfMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* mat);
+    float PdfMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi);
 }

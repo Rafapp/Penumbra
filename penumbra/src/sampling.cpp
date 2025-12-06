@@ -50,6 +50,20 @@ glm::vec2 Sampler::SampleUnitDisk() {
     return glm::vec2(x, y);
 }
 
+glm::vec3 Sampler::SampleSphereUniform() {
+    float u1 = Sample1D();
+    float u2 = Sample1D();
+
+    float z = 1.0f - 2.0f * u1;
+    float r = sqrt(glm::max(0.0f, 1.0f - z * z));
+    float phi = 2.0f * M_PI * u2;
+
+    float x = r * cos(phi);
+    float y = r * sin(phi);
+
+    return glm::vec3(x, y, z);
+}
+
 glm::vec3 Sampler::SampleHemisphereUniform(const glm::vec3& normal) {
    // Sample hemisphere uniformly around the normal
    float u1 = Sample1D();

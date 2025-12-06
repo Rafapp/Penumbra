@@ -47,34 +47,34 @@ void Viewport::createShaderProgram() {
     GLuint vs = compileShader(vertexShader, GL_VERTEX_SHADER);
     GLuint fs = compileShader(fragmentShader, GL_FRAGMENT_SHADER);
 
-    m_program = glCreateProgram();
-    glAttachShader(m_program, vs);
-    glAttachShader(m_program, fs);
+    program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
 
-    glBindAttribLocation(m_program, 0, "position");
-    glBindAttribLocation(m_program, 1, "texCoord");
+    glBindAttribLocation(program, 0, "position");
+    glBindAttribLocation(program, 1, "texCoord");
 
-    glLinkProgram(m_program);
+    glLinkProgram(program);
 
     int success;
     char infoLog[512];
-    glGetProgramiv(m_program, GL_LINK_STATUS, &success);
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(m_program, 512, nullptr, infoLog);
+        glGetProgramInfoLog(program, 512, nullptr, infoLog);
         std::cerr << "Program linking failed: " << infoLog << std::endl;
     }
 
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    glUseProgram(m_program);
-    m_uniformTexLocation = glGetUniformLocation(m_program, "tex");
-    glUniform1i(m_uniformTexLocation, 0);
+    glUseProgram(program);
+    uniformTexLocation = glGetUniformLocation(program, "tex");
+    glUniform1i(uniformTexLocation, 0);
     glUseProgram(0);
 }
 
 Viewport::Viewport(Renderer* renderer, int width, int height) : 
-    m_width(width), m_height(height) {
+    width(width), height(height) {
 
     if (!glfwInit()) {
         throw std::runtime_error("Failed to initialize GLFW");
@@ -85,31 +85,33 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     
-    m_window = glfwCreateWindow(m_width, m_height, "Penumbra", NULL, NULL);
-    if(!m_window){
+    window = glfwCreateWindow(width, height, "Penumbra", NULL, NULL);
+    if(!window){
         glfwTerminate();
         throw std::runtime_error("Failed to create GLFW window");
     }
     
-    glfwMakeContextCurrent(m_window);
+    glfwMakeContextCurrent(window);
 
     // GUI
-    m_gui = std::make_unique<GUI>(m_window);
-    m_gui->SetRenderCallback([&renderer]() {
-        renderer->BeginRender();
+    gui = std::make_unique<GUI>(window);
+    Renderer* r = renderer;
+    gui->SetRenderCallback([r]() {
+        r->BeginRender();
     });
-    rendererWidth = renderer->GetRenderWidth();
-    rendererHeight = renderer->GetRenderHeight();
+    renderer->SetGUI(gui.get());
+    viewportRenderWidth = gui->GetRenderWidth();
+    viewportRenderHeight = gui->GetRenderHeight();
     int fbw, fbh;
-    glfwGetFramebufferSize(m_window, &fbw, &fbh);
-    m_width  = fbw;
-    m_height = fbh;
+    glfwGetFramebufferSize(window, &fbw, &fbh);
+    width  = fbw;
+    height = fbh;
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         throw std::runtime_error("Failed to load OpenGL functions");
     }
 
-    m_windowBuffer.resize(rendererWidth * rendererHeight * 3, 0);
+    windowBuffer.resize(viewportRenderWidth * viewportRenderHeight * 3, 0);
 
     glfwSwapInterval(1);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -117,15 +119,15 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     createShaderProgram();
 
     // Generate and bind texture 
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glTexImage2D(
         GL_TEXTURE_2D, 0, GL_RGB,
-        rendererWidth,rendererHeight, 
+        viewportRenderWidth, viewportRenderHeight, 
         0, GL_RGB, GL_UNSIGNED_BYTE,
         nullptr
     );
@@ -145,11 +147,11 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     };
     
     // Bind and set up VAO and VBO
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
 
-    glBindVertexArray(m_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
@@ -159,54 +161,65 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
     // Set initial scale uniform
-    m_uniformScaleLocation = glGetUniformLocation(m_program, "uScale");
-    glUseProgram(m_program);
-    glUniform2f(m_uniformScaleLocation, 1.0f, 1.0f);
+    uniformScaleLocation = glGetUniformLocation(program, "uScale");
+    glUseProgram(program);
+    glUniform2f(uniformScaleLocation, 1.0f, 1.0f);
 
     // Callbacks
-    glfwSetWindowUserPointer(m_window, this);
-    glfwSetFramebufferSizeCallback(m_window, ResizeCallbackStatic);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, ResizeCallbackStatic);
 
     glBindVertexArray(0);
 }
 
 void Viewport::UpdateTexture(const std::vector<uint8_t>& pixels, int w, int h){
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                w, h,
-                GL_RGB, GL_UNSIGNED_BYTE,
-                pixels.data());
+ glBindTexture(GL_TEXTURE_2D, texture);
+
+    if (w != texWidth || h != texHeight) {
+        texWidth = w;
+        texHeight = h;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,
+                     w, h, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE,
+                     pixels.data());
+    }
+    else {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+                        w, h,
+                        GL_RGB, GL_UNSIGNED_BYTE,
+                        pixels.data());
+    }
 }
 
 void Viewport::ShowViewport(){
     glClear(GL_COLOR_BUFFER_BIT);
-    glUseProgram(m_program);
+    glUseProgram(program);
     
     // Scale viewport to maintain aspect ratio
-    float windowAspect = (float) m_width / m_height;
-    float imageAspect  = (float) rendererWidth / rendererHeight;
+    float windowAspect = (float) width / height;
+    float imageAspect  = (float) viewportRenderWidth / viewportRenderHeight;
     float scaleX = (windowAspect > imageAspect) ? (imageAspect / windowAspect) : 1.f;
     float scaleY = (windowAspect > imageAspect) ? 1.f : (windowAspect / imageAspect);
-    glUniform2f(m_uniformScaleLocation, scaleX, scaleY);
-    glUniform1i(m_uniformTexLocation, 0);
+    glUniform2f(uniformScaleLocation, scaleX, scaleY);
+    glUniform1i(uniformTexLocation, 0);
     
     // Bind texture and draw
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-    glBindVertexArray(m_vao);
+    glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
-    m_gui->NewFrame();
-    m_gui->Render();
+    gui->NewFrame();
+    gui->Render();
 
-    glfwSwapBuffers(m_window);
+    glfwSwapBuffers(window);
 }
 
 void Viewport::ResizeViewport(int width, int height){
-    m_width = width;
-    m_height = height;
-    glViewport(0, 0, m_width, m_height);
+    width = width;
+    height = height;
+    glViewport(0, 0, width, height);
 }
 
 void Viewport::ResizeCallbackStatic(GLFWwindow* window, int w, int h){
@@ -217,13 +230,13 @@ void Viewport::ResizeCallbackStatic(GLFWwindow* window, int w, int h){
 }
 
 void Viewport::ResizeCallback(GLFWwindow* window, int w, int h){
-    m_width = w;
-    m_height = h;
+    width = w;
+    height = h;
     ShowViewport();
 }
 
 bool Viewport::ShouldClose() const {
-    return glfwWindowShouldClose(m_window);
+    return glfwWindowShouldClose(window);
 }
 
 void Viewport::PollEvents(){
@@ -231,11 +244,11 @@ void Viewport::PollEvents(){
 }
 
 Viewport::~Viewport(){
-    if (m_texture != 0) {
-        glDeleteTextures(1, &m_texture);
+    if (texture != 0) {
+        glDeleteTextures(1, &texture);
     }
-    if (m_window) {
-        glfwDestroyWindow(m_window);
+    if (window) {
+        glfwDestroyWindow(window);
     }
     glfwTerminate();
 }

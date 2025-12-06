@@ -18,8 +18,8 @@ GUI::GUI(GLFWwindow* window) : m_window(window) {
     cfg.OversampleV = 5;
     cfg.PixelSnapH = true;
     cfg.RasterizerMultiply = 1.5f;
-    m_font = io.Fonts->AddFontFromFileTTF("./resources/fonts/JetBrainsMono-Regular.ttf", 16.0f, &cfg);
-    if (!m_font) {
+    font = io.Fonts->AddFontFromFileTTF("./resources/fonts/JetBrainsMono-Regular.ttf", 16.0f, &cfg);
+    if (!font) {
         std::cerr << "Failed to load JetBrainsMono-Regular.ttf\n";
     }
     io.Fonts->Build();
@@ -48,15 +48,15 @@ void GUI::Render() {
 
     if (ImGui::Begin("Render Controls", nullptr, window_flags)) {
 
-        if (m_font) ImGui::PushFont(m_font);
+        if (font) ImGui::PushFont(font);
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
         io.FontGlobalScale = 0.005f * panelWidth;
 
         // Render button
         if (ImGui::Button("Render", ImVec2(panelWidth, 40.0f))) {
-            if (m_renderCallback) {
-                m_renderCallback();
+            if (renderCallback) {
+                renderCallback();
             }
         }
 
@@ -70,21 +70,19 @@ void GUI::Render() {
 
             // Resolution
             if (ImGui::CollapsingHeader("Resolution")) {
-                static float renderW = 1920.0f;
                 ImGui::Text("Render Width");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputFloat("##RenderWidth", &renderW);
+                ImGui::InputInt("##RenderWidth", &renderWidth);
 
-                static float renderH = 1080.0f;
                 ImGui::Text("Render Height");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputFloat("##RenderHeight", &renderH);
+                ImGui::InputInt("##RenderHeight", &renderHeight);
             }
 
             ImGui::Unindent(20.0f);
         }
 
-        if (m_font) ImGui::PopFont();
+        if (font) ImGui::PopFont();
 
     }
 

@@ -2,6 +2,10 @@
 
 #include "glm/glm.hpp"
 
+class AreaLight;
+class Shape;
+class Material;
+
 struct Ray{
     glm::vec3 o;
     glm::vec3 d;
@@ -24,4 +28,7 @@ struct HitInfo{
     bool front;
     int materialId = -1;
     int areaLightId = -1;
+    AreaLight* areaLight = nullptr;
+    Shape* shape = nullptr;
+    Material* material = nullptr;
 };

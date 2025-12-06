@@ -11,9 +11,9 @@
 class Scene;
 class Renderer;
 
-#define TILESIZE 8 
+#define TILESIZE 16 
 #define SHUFFLE false  // TODO: Address morton ordering with shuffling
-#define MORTON_ORDERING true 
+#define MORTON_ORDERING false 
 
 class RenderThreadPool {
 public:

@@ -9,6 +9,7 @@ Renderer::Renderer() {
 }
 
 Renderer::~Renderer() {
+    // scene.reset();
 }
 
 bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
@@ -37,11 +38,13 @@ void Renderer::BeginRender() {
         std::cerr << "Failed to reload scene" << std::endl;
         return;
     }
-    
-    threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
-    threadPool->Stop();
-    threadPool->Reset();
+    renderWidth = gui->GetRenderWidth();
+    renderHeight = gui->GetRenderHeight();
+    renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
+
+    if(threadPool) threadPool->Reset();
+    threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
     threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
 }
 
@@ -70,6 +73,9 @@ bool Renderer::IntersectRayScene(const Ray& ray, HitInfo& hit) const {
             if(tWorld < closest) {
 				closest = tWorld;
                 tmpHit.t = tWorld;
+                tmpHit.shape = shape;
+                tmpHit.material = shape->material;
+                tmpHit.areaLight = shape->areaLight;
                 hit = tmpHit;
                 hitAny = true;
             }
@@ -82,13 +88,16 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     glm::vec3 color(0.0f);
 
     // Cutoff
-    if (depth > MAX_BOUNCES) {
-        return color;
+    if(INF_BOUNCES == false) {
+        if (depth > MAX_BOUNCES) {
+            return color;
+        }
     }
 
     // Russian Roulette
-    float pSurvive = 0.95f;
+    float pSurvive = 1.0f;
     if (depth > 3){
+        pSurvive = 0.95f;
         float x = sampler.Sample1D();
         if (x > pSurvive) {
             return color;
@@ -109,11 +118,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     // === 1. Emission ===
     // ===================
 
-    if (hit.areaLightId != minipbrt::kInvalidIndex) {
-        AreaLight* areaLight = dynamic_cast<AreaLight*>(scene->lights[hit.areaLightId]);
-        // TODO: Might run into indexing issues later with ideal/area light mixup
-        if(!areaLight) throw std::runtime_error("Light at areaLightId is not an AreaLight");
-        return areaLight->Illuminated(hit, *this, *scene->shapes[hit.areaLightId]);
+    if (hit.areaLight != nullptr) {
+        AreaLight* areaLight = dynamic_cast<AreaLight*>(hit.areaLight);
+        return areaLight->GetRadiance(hit,*areaLight->shape);
     }
 
     // ================================
@@ -125,40 +132,71 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     float pLight = 1.0f / nLights;
     int lightIdx = sampler.SampleInt(0, nLights - 1);
     Light* light = scene->lights[lightIdx];
-    LightSample randomLightSample;
+    LightSample randomIdealLightSample;
+    LightSample randomAreaLightSample;
 
     // TODO: Not huge fan of polymorphism here
     if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
-        randomLightSample = idealLight->Sample(hit, *this);
+        if(!light) throw std::runtime_error("Randomly selected ideal light is null");
+        randomIdealLightSample = idealLight->Sample(hit, sampler);
     } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
-        randomLightSample = areaLight->Sample(hit, *this);
+        randomAreaLightSample = areaLight->Sample(hit, sampler, *areaLight->shape);
+        if(!areaLight) throw std::runtime_error("Randomly selected area light is null");
     }
 
-    // =====================================
-    // === 3. NEE: Direct light sampling ===
-    // =====================================
+    // =================================
+    // === 3. NEE: With random light ===
+    // =================================
 
-    Material* mat = scene->materials[hit.materialId];
-    if(!mat) throw std::runtime_error("Material at hit.materialId is null");
+    Material* mat = hit.material;
+    if(!mat) throw std::runtime_error("Material at hit.material is null");
 
-    // If unoccluded, evaluate BxDF and accumulate direct lighting
-    // TODO: Update Illuminated() to support this directly via polymorphism
-    glm::vec3 toLight = randomLightSample.position - hit.p;
-    if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
-        float directLightPdf = randomLightSample.pdf * pLight;
-        float directLightPower = glm::pow(directLightPdf, beta);
+    // 1. Ideal light
+    if(randomIdealLightSample.pdf > 0.0f){
+        glm::vec3 toLight = randomIdealLightSample.position - hit.p;
+        if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
+            float directLightPdf = randomIdealLightSample.pdf * pLight;
+            float directLightPower = glm::pow(directLightPdf, beta);
 
-        Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, glm::normalize(toLight), sampler);
-        float bxdfDirectLightPdf = glm::pow(bxdfDirectLightSample.pdf, beta);
+            Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, glm::normalize(toLight), sampler);
+            float bxdfDirectLightPower = glm::pow(bxdfDirectLightSample.pdf, beta);
 
-        float misWeightDirect = (directLightPower / (directLightPower + bxdfDirectLightPdf));
-        directLight += misWeightDirect * randomLightSample.radiance * bxdfDirectLightSample.color / directLightPdf;
+            float misWeightDirect = (directLightPower / (directLightPower + bxdfDirectLightPower));
+            directLight += misWeightDirect * randomIdealLightSample.radiance * bxdfDirectLightSample.color / directLightPdf;
+        }
+    }
+
+    // 2. Area light
+    if (randomAreaLightSample.pdf > 0.0f) {
+        glm::vec3 toLight = randomAreaLightSample.position - hit.p;
+        float dist = glm::length(toLight);
+        glm::vec3 wi = glm::normalize(toLight);
+        float cosHit   = glm::max(0.0f, glm::dot(hit.n, wi));
+        float cosLight = glm::dot(-wi, randomAreaLightSample.normal);
+
+        if (cosHit > 0.0f && cosLight > 0.0f &&
+            TraceShadowRay(hit.p, toLight, hit.n, dist) != 0.0f) {
+
+            float directLightPdf = randomAreaLightSample.pdf * pLight * (dist * dist) / cosLight;
+            float directLightPower = glm::pow(directLightPdf, beta);
+
+            glm::vec3 bxdfDirectLightColor = Shading::ShadeMaterial(hit, wi, mat);
+            float bxdfDirectLightPdf = Shading::PdfMaterial(hit, wi, mat);
+            float bxdfDirectLightPower = glm::pow(bxdfDirectLightPdf, beta);
+
+            float misWeightDirect = directLightPower / (directLightPower + bxdfDirectLightPower);
+
+            directLight += misWeightDirect *
+                randomAreaLightSample.radiance *
+                bxdfDirectLightColor *
+                cosHit /
+                directLightPdf;
+        }
     }
     
     // ============================
     // === 4. Indirect lighting ===
     // ============================
-
 
     // Sample BxDF to get new path direction
     Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
@@ -168,9 +206,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     float indirectLightPdf = 0.0f;
     for(Light* light : scene->lights){
         if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
-            indirectLightPdf += pLight * idealLight->Sample(hit, *this).pdf;
+            indirectLightPdf += pLight * idealLight->Sample(hit, sampler).pdf;
         } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
-            indirectLightPdf += pLight * areaLight->Sample(hit, *this).pdf;
+            indirectLightPdf += pLight * areaLight->Sample(hit, sampler, *areaLight->shape).pdf;
         }
     }
 

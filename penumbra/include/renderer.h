@@ -9,6 +9,7 @@
 #include "threading.h"
 #include "pbrtconverter.h"
 #include "sampling.h"
+#include "gui.h"
 
 // TODO: Adaptive SPP
 // #define MIN_SPP 1 
@@ -17,8 +18,9 @@
 // #define LIGHTING_ERROR_THRESHOLD 1e-1f
 
 #define SHADOW_EPS 1e-4f
-#define SPP 256 
-#define MAX_BOUNCES 32 
+#define SPP 1 
+#define MAX_BOUNCES 0 
+#define INF_BOUNCES true
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
 // inline unsigned int NTHREADS = 2;
 
@@ -36,7 +38,10 @@ public:
     bool LoadScene(const std::string& filename);
     int GetRenderWidth() const { return renderWidth; }
     int GetRenderHeight() const { return renderHeight; }
+    void SetRenderWidth(int w) { renderWidth = w; }
+    void SetRenderHeight(int h) { renderHeight = h; }
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
+    void SetGUI(GUI* guiPtr) { gui = guiPtr; }
 
 private:
     std::string sceneFilename;
@@ -45,8 +50,11 @@ private:
     minipbrt::Scene* pbrtScene = nullptr;
     std::unique_ptr<RenderThreadPool> threadPool;
 
-    // TODO: Grab from GUI OR PBRT scene
-    int renderWidth = 960;
-    int renderHeight = 540;
+
+    // GUI Variables
+    GUI* gui = nullptr;
+    int renderWidth = -1;
+    int renderHeight = -1;
+
     void ConvertPbrtScene();
 };

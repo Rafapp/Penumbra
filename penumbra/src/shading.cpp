@@ -3,7 +3,7 @@
 #include "shading.h"
 #include "lights.h"
 
-    
+// === BxDF Sampling ===    
 Shading::BxDFSample Shading::SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& wi, Sampler& sampler) {
     if (material->GetType() == minipbrt::MaterialType::Matte) {
         auto matte = static_cast<const MatteMaterial*>(material);
@@ -21,32 +21,31 @@ Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, const MatteMaterial
     return sample;
 }
 
-glm::vec3 Shading::ShadeMaterial(const HitInfo& hit, const Material* material, const Light* light) {
+// === BxDF Shading ===
+glm::vec3 Shading::ShadeMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* material) {
     if (!material) return glm::vec3(0.0f);
     
     if (material->GetType() == minipbrt::MaterialType::Matte) {
-        return ShadeMatte(hit, static_cast<const MatteMaterial*>(material), light);
+        return ShadeMatte(hit, wi, static_cast<const MatteMaterial*>(material));
     }
     
     return glm::vec3(0.0f);
 }
 
-glm::vec3 Shading::ShadeMatte(const HitInfo& hit, const MatteMaterial* matte, const Light* light) {
-    glm::vec3 albedo = matte->GetAlbedo();
-    glm::vec3 color = glm::vec3(0.0f);
-    glm::vec3 toLight;
-    // TODO: Bad polymorphism ... rethink
-    if(const IdealLight* idealLight = static_cast<const IdealLight*>(light)){
-        toLight = glm::normalize(idealLight->GetPosition() - hit.p);
-    } else if(const AreaLight* areaLight = dynamic_cast<const AreaLight*>(light)){
-        // TODO: Sample point on area light surface instead
-        // toLight = glm::normalize(areaLight->GetPosition() - hit.p);
+glm::vec3 Shading::ShadeMatte(const HitInfo& hit, const glm::vec3& wi, const MatteMaterial* matte) {
+    return matte->GetAlbedo() / float(M_PI);
+}
+
+// === BxDF PDF's ===
+float Shading::PdfMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* mat) {
+    if (mat->GetType() == minipbrt::MaterialType::Matte) {
+        const MatteMaterial* matte = static_cast<const MatteMaterial*>(mat);
+        return PdfMatte(hit, matte, wi);
     }
-    float cosTheta = glm::max(0.0f, glm::dot(hit.n, toLight));
-        
-    // Lambertian diffuse BRDF
-    float ambient = 0.5f;
-    color += albedo * cosTheta / float(M_PI);
-    
-    return color;
+    return 0.0f;
+}
+
+float Shading::PdfMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi) {
+    float cosTheta = glm::max(0.0f, glm::dot(hit.n, wi));
+    return cosTheta / float(M_PI);
 }

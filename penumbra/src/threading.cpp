@@ -124,7 +124,7 @@ void RenderThreadPool::Start(std::function<void(int, int)> render) {
     tilesW = (w + tileSize - 1) / tileSize;
     tilesH = (h + tileSize - 1) / tileSize;
 
-	std::cout << "Starting render with " << nThreads - 1 << " threads." << std::endl;
+	std::cout << "Dispatching " << nThreads - 1 << " threads." << std::endl;
     stop = false;
 
     for (int i = 0; i < nThreads - 1; i++) {
@@ -141,7 +141,11 @@ void RenderThreadPool::Stop() {
 }
 
 void RenderThreadPool::Reset() {
+    for (auto& t : workers) {
+        if (t.joinable()) t.join();
+    }
     activeThreads = 0;
     stop = false;
     tiles = 0;
+    workers.clear();
 }
