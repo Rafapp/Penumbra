@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #define SPHERE_EPS 1e-8f
-#define TRI_EPS 1e-8f
+#define TRI_EPS 1e-4f
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
@@ -24,7 +24,7 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
         t = t0;
         hit.front = true;
     }
-    else if (t1 > SPHERE_EPS) {
+    else if (t1 > SPHERE_EPS * 10.0f) {
         t = t1;
         hit.front = false;
     }
@@ -38,8 +38,8 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     glm::vec3 nObj = glm::normalize(r.At(t));
     hit.n = glm::normalize(glm::vec3(transform * glm::vec4(nObj, 0.0f)));
 
-    glm::vec3 oWorld = glm::vec3(transform * glm::vec4(r.o, 1.0f));
-    float tWorld = glm::length(hit.p - oWorld);
+    float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
+    float tWorld = t * s;
     hit.t = tWorld;
 
     hit.materialId = materialId;
@@ -95,8 +95,8 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             glm::mat3 normalMatrix = glm::transpose(glm::mat3(inverseTransform));
             hit.n = glm::normalize(normalMatrix * nObj);
 
-            glm::vec3 oWorld = glm::vec3(transform * glm::vec4(r.o, 1.0f));
-            float tWorld = glm::length(hit.p- oWorld);
+            float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
+            float tWorld = t * s;
             hit.t = tWorld;
 
             hit.front = glm::dot(hit.n, -r.d) > 0.0f;

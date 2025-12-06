@@ -52,15 +52,20 @@ void Renderer::BeginRender() {
 void Renderer::StopRender() {
 }
 
-float Renderer::TraceShadowRay(const glm::vec3& p, const glm::vec3& wi, const glm::vec3& n, float maxDist) const {
+bool Renderer::Occluded(const glm::vec3& p, const glm::vec3& wi, const glm::vec3& n, float maxDist) const {
     HitInfo hit;
-    Ray shadowRay = Ray(p + n * SHADOW_EPS, wi);
-    if (TraceRay(shadowRay, hit)) {
-        if (hit.t < maxDist - SHADOW_EPS) {
-            return 0.0f;
+    Ray shadowRay = Ray(p + n * OCCLUDED_EPS, wi);
+    for(Shape* shape : scene->shapes) {
+        if(shape->IsAreaLight()) continue;
+        Ray rObj = shadowRay.Transform(shape->GetInverseTransform());
+        HitInfo hit;
+        if(shape->IntersectRay(rObj, hit)) {
+            if (hit.front && hit.t < maxDist) {
+                return true;
+            }
         }
     }
-    return 1.0f;
+    return false;
 }
 
 bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
@@ -153,7 +158,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     // 1. Ideal light
     // if(randomIdealLightSample.pdf > 0.0f){
     //     glm::vec3 toLight = randomIdealLightSample.position - hit.p;
-    //     if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
+    //     if(Occluded(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
     //         float directLightPdf = randomIdealLightSample.pdf * pLight;
     //         float directLightPower = glm::pow(directLightPdf, beta);
 
@@ -170,8 +175,8 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
         glm::vec3 toLight = randomAreaLightSample.p - hit.p;
         float d = glm::length(toLight);
         glm::vec3 wi = toLight / d;
-        return Shading::ShadeMaterial(hit, wi, mat);
-        if(TraceShadowRay(hit.p, wi, hit.n, d) != 0.0f){
+        if(!Occluded(hit.p, wi, hit.n, d)){
+            return Shading::ShadeMaterial(hit, wi, mat);
             float d2 = glm::pow(d, 2);
             float gHit = glm::dot(hit.n, wi);
             float gLight = glm::dot(randomAreaLightSample.n, -wi);

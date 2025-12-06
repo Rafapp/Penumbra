@@ -17,7 +17,7 @@
 // #define SHADING_ERROR_THRESHOLD 1e-1f
 // #define LIGHTING_ERROR_THRESHOLD 1e-1f
 
-#define SHADOW_EPS 1e-4f
+#define OCCLUDED_EPS 1e-4f
 #define MAX_BOUNCES 0 
 #define INF_BOUNCES true
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
@@ -30,7 +30,7 @@ public:
     bool SetPbrtScene(minipbrt::Scene* scene);
     void RenderPixel(int u, int v);
     bool TraceRay(const Ray& ray, HitInfo& hit) const;
-    float TraceShadowRay(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
+    bool Occluded(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
     glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth);
     void BeginRender();
     void StopRender();

@@ -31,7 +31,8 @@ DiffuseAreaLight::DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtDiffuseAreaLi
 glm::vec3 PointLight::Illuminated(const HitInfo& hit, const Renderer& renderer) {
     glm::vec3 toLight = position - hit.p;
     float dist = glm::length(toLight);
-    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * intensity;
+    bool occluded = renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
+    return occluded ? glm::vec3(0.0f) : intensity;
 }
 
 glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
@@ -45,7 +46,9 @@ glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, c
 glm::vec3 DiffuseAreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
     glm::vec3 toLight = shape.GetPosition() - hit.p;
     float dist = glm::length(toLight);
-    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * radiance;
+    bool occluded = renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
+    if(!occluded) return radiance;
+    return glm::vec3(0.0f);
 }
 
 // === Radiance ===
@@ -75,10 +78,13 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const
     if (sphere) {
         glm::vec3 p = sphere->GetPosition();
         float r = sphere->GetRadius();
-        glm::vec3 d = sampler.SampleSphereUniform();
-        glm::vec3 x = p + r * d;
-        sample.p = x;
-        sample.n = d;
+        glm::vec3 n = sampler.SampleSphereUniform();
+        glm::vec3 nWorld = glm::normalize(glm::vec3(shape.GetTransform() * glm::vec4(n, 0.0f)));
+        glm::vec3 x = p + r * n;
+        glm::vec3 xWorld = glm::vec3(shape.GetTransform() * glm::vec4(x, 1.0f));
+
+        sample.p = xWorld;
+        sample.n = nWorld;
         sample.L = GetRadiance(hit, shape);
         sample.pdf = 1.0f / (4.0f * M_PI * r * r);
         return sample;
@@ -109,7 +115,8 @@ float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const 
         float cosLight = glm::dot(-wo, n);
         if (cosLight <= 0.0f) return 0.0f;
 
-        if (renderer.TraceShadowRay(hit.p, wo, hit.n, lightHit.t) == 0.0f) return 0.0f;
+        bool occluded = renderer.Occluded(hit.p, wo, hit.n, lightHit.t);
+        if (occluded) return 0.0f;
 
         return (1.0f / surfaceArea) * dist2 / cosLight;
     }
