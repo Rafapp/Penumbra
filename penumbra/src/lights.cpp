@@ -13,13 +13,16 @@ PointLight::PointLight(minipbrt::PointLight* pbrtLight) {
 
 AreaLight::AreaLight(minipbrt::AreaLight* pbrtAreaLight) {
     if (!pbrtAreaLight) return;
-    this->type = AreaLightType::Diffuse;
-    this->scale = glm::vec3(pbrtAreaLight->scale[0], pbrtAreaLight->scale[1], pbrtAreaLight->scale[2]);
+    if(pbrtAreaLight->type() == minipbrt::AreaLightType::Diffuse) {
+        this->type = AreaLightType::Diffuse;
+        this->scale = glm::vec3(pbrtAreaLight->scale[0], pbrtAreaLight->scale[1], pbrtAreaLight->scale[2]);
+    }
+    // TODO: More area light types
 }
 
 DiffuseAreaLight::DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtDiffuseAreaLight) : AreaLight(pbrtDiffuseAreaLight){
     if (!pbrtDiffuseAreaLight) return;
-    this->intensity= glm::vec3(pbrtDiffuseAreaLight->L[0], pbrtDiffuseAreaLight->L[1], pbrtDiffuseAreaLight->L[2]);
+    this->radiance = glm::vec3(pbrtDiffuseAreaLight->L[0], pbrtDiffuseAreaLight->L[1], pbrtDiffuseAreaLight->L[2]);
     this->twoSided = pbrtDiffuseAreaLight->twosided;
     this->samples = pbrtDiffuseAreaLight->samples;
 }
@@ -42,7 +45,7 @@ glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, c
 glm::vec3 DiffuseAreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
     glm::vec3 toLight = shape.GetPosition() - hit.p;
     float dist = glm::length(toLight);
-    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * intensity;
+    return renderer.TraceShadowRay(hit.p, glm::normalize(toLight), hit.n, dist) * radiance;
 }
 
 // === Radiance ===
@@ -51,21 +54,16 @@ glm::vec3 IdealLight::GetRadiance(const HitInfo& hit) {
 }
 
 glm::vec3 PointLight::GetRadiance(const HitInfo& hit) {
-    float toLight = glm::length(position - hit.p);
-    return intensity / (toLight * toLight);
-}
-
-// TODO: Remove shape arg?
-glm::vec3 DiffuseAreaLight::GetRadiance(const HitInfo& hit, const Shape& shape) {
-   return intensity; 
+    float d = glm::length(position - hit.p);
+    return intensity / (d * d);
 }
 
 // === Sampling === 
 LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
     LightSample sample;
-    sample.position = position;
-    sample.normal = hit.n;
-    sample.radiance = GetRadiance(hit);
+    sample.p = position;
+    sample.n = hit.n;
+    sample.L = GetRadiance(hit);
     sample.pdf = 1.0f / (4.0f * M_PI);
     return sample;
 }
@@ -75,22 +73,22 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const
 
     const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
     if (sphere) {
-        glm::vec3 center = sphere->GetPosition();
-        float radius = sphere->GetRadius();
-        glm::vec3 dir = sampler.SampleSphereUniform();
-        glm::vec3 lightPoint = center + radius * dir;
-        sample.position = lightPoint;
-        sample.normal = dir;
-        sample.radiance = intensity;
-        sample.pdf = 1.0f / (4.0f * M_PI * radius * radius);
+        glm::vec3 p = sphere->GetPosition();
+        float r = sphere->GetRadius();
+        glm::vec3 d = sampler.SampleSphereUniform();
+        glm::vec3 x = p + r * d;
+        sample.p = x;
+        sample.n = d;
+        sample.L = GetRadiance(hit, shape);
+        sample.pdf = 1.0f / (4.0f * M_PI * r * r);
         return sample;
     }
 
     //  TODO: Implement other shape types
-    sample.position = shape.GetPosition();
-    sample.normal   = hit.n;
-    sample.radiance = intensity;
-    sample.pdf      = 1.0f;
+    sample.p = shape.GetPosition();
+    sample.n = hit.n;
+    sample.L = radiance;
+    sample.pdf = 1.0f;
     return sample;
 }
 

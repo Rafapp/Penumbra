@@ -9,9 +9,9 @@ class Renderer;
 class Sampler;
 
 struct LightSample{
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec3 radiance;
+    glm::vec3 p;
+    glm::vec3 n;
+    glm::vec3 L;
     float pdf;
 };
 
@@ -79,12 +79,11 @@ public:
 
     LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) override;
     glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) override;
-    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override;
-    glm::vec3 GetIntensity() const { return intensity; }
+    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance; }
     float GetSurfaceArea() const { return surfaceArea; }
     float Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const override;
 private:
-    glm::vec3 intensity;
+    glm::vec3 radiance;
     bool twoSided;
     int samples;
     float surfaceArea;

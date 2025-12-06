@@ -52,9 +52,9 @@ void Renderer::BeginRender() {
 void Renderer::StopRender() {
 }
 
-float Renderer::TraceShadowRay(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const {
+float Renderer::TraceShadowRay(const glm::vec3& p, const glm::vec3& wi, const glm::vec3& n, float maxDist) const {
     HitInfo hit;
-    Ray shadowRay = Ray(o + n * SHADOW_EPS, d); 
+    Ray shadowRay = Ray(p + n * SHADOW_EPS, wi);
     if (IntersectRayScene(shadowRay, hit)) {
         if (hit.t < maxDist) {
             return 0.0f;
@@ -153,45 +153,34 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     if(!mat) throw std::runtime_error("Material at hit.material is null");
 
     // 1. Ideal light
-    if(randomIdealLightSample.pdf > 0.0f){
-        glm::vec3 toLight = randomIdealLightSample.position - hit.p;
-        if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
-            float directLightPdf = randomIdealLightSample.pdf * pLight;
-            float directLightPower = glm::pow(directLightPdf, beta);
+    // if(randomIdealLightSample.pdf > 0.0f){
+    //     glm::vec3 toLight = randomIdealLightSample.position - hit.p;
+    //     if(TraceShadowRay(hit.p, toLight, hit.n, glm::length(toLight)) != 0.0f ){
+    //         float directLightPdf = randomIdealLightSample.pdf * pLight;
+    //         float directLightPower = glm::pow(directLightPdf, beta);
 
-            Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, glm::normalize(toLight), sampler);
-            float bxdfDirectLightPower = glm::pow(bxdfDirectLightSample.pdf, beta);
+    //         Shading::BxDFSample bxdfDirectLightSample = Shading::SampleMaterial(hit, mat, glm::normalize(toLight), sampler);
+    //         float bxdfDirectLightPower = glm::pow(bxdfDirectLightSample.pdf, beta);
 
-            float misWeightDirect = (directLightPower / (directLightPower + bxdfDirectLightPower));
-            directLight += misWeightDirect * randomIdealLightSample.radiance * bxdfDirectLightSample.color / directLightPdf;
-        }
-    }
+    //         float misWeightDirect = (directLightPower / (directLightPower + bxdfDirectLightPower));
+    //         directLight += misWeightDirect * randomIdealLightSample.radiance * bxdfDirectLightSample.color / directLightPdf;
+    //     }
+    // }
 
     // 2. Area light
     if (randomAreaLightSample.pdf > 0.0f) {
-        glm::vec3 toLight = randomAreaLightSample.position - hit.p;
-        float dist = glm::length(toLight);
-        glm::vec3 wi = glm::normalize(toLight);
-        float cosHit   = glm::max(0.0f, glm::dot(hit.n, wi));
-        float cosLight = glm::dot(-wi, randomAreaLightSample.normal);
-
-        if (cosHit > 0.0f && cosLight > 0.0f &&
-            TraceShadowRay(hit.p, toLight, hit.n, dist) != 0.0f) {
-
-            float directLightPdf = randomAreaLightSample.pdf * pLight * (dist * dist) / cosLight;
-            float directLightPower = glm::pow(directLightPdf, beta);
-
-            glm::vec3 bxdfDirectLightColor = Shading::ShadeMaterial(hit, wi, mat);
-            float bxdfDirectLightPdf = Shading::PdfMaterial(hit, wi, mat);
-            float bxdfDirectLightPower = glm::pow(bxdfDirectLightPdf, beta);
-
-            float misWeightDirect = directLightPower / (directLightPower + bxdfDirectLightPower);
-
-            directLight += misWeightDirect *
-                randomAreaLightSample.radiance *
-                bxdfDirectLightColor *
-                cosHit /
-                directLightPdf;
+        glm::vec3 toLight = randomAreaLightSample.p - hit.p;
+        float d = glm::length(toLight);
+        glm::vec3 wi = toLight / d;
+        if(TraceShadowRay(hit.p, wi, hit.n, d) != 0.0f){
+            float d2 = glm::pow(d, 2);
+            float gHit = glm::dot(hit.n, wi);
+            float gLight = glm::dot(randomAreaLightSample.n, -wi);
+            if(!(gHit <= 0.0f || gLight <= 0.0f)){
+                float G = glm::dot(hit.n, wi) * glm::dot(randomAreaLightSample.n, -wi) / d2;
+                directLight += randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) * G / (pLight * randomAreaLightSample.pdf);
+                std::cout << "direct: " << directLight.x << ", " << directLight.y << ", " << directLight.z << std::endl;
+            }
         }
     }
     
@@ -200,30 +189,31 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     // ============================
 
     // Sample BxDF to get new path direction
-    Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
-    float bxdfIndirectLightPdf = glm::pow(bxdfPathSample.pdf, beta);
+    // Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
+    // float bxdfIndirectLightPdf = glm::pow(bxdfPathSample.pdf, beta);
 
-    // Sample all lights to find pdf for  that direction
-    float indirectLightPdf = 0.0f;
-    for(Light* light : scene->lights){
-        if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
-            indirectLightPdf += pLight * idealLight->Sample(hit, sampler).pdf;
-        } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
-            indirectLightPdf += pLight * areaLight->Sample(hit, sampler, *areaLight->shape).pdf;
-        }
-    }
+    // // Sample all lights to find pdf for  that direction
+    // float indirectLightPdf = 0.0f;
+    // for(Light* light : scene->lights){
+    //     if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
+    //         indirectLightPdf += pLight * idealLight->Sample(hit, sampler).pdf;
+    //     } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
+    //         indirectLightPdf += pLight * areaLight->Sample(hit, sampler, *areaLight->shape).pdf;
+    //     }
+    // }
 
-    float indirectLightPower = glm::pow(indirectLightPdf, beta);
-    float misWeightIndirect = bxdfIndirectLightPdf / (indirectLightPower + bxdfIndirectLightPdf);
+    // float indirectLightPower = glm::pow(indirectLightPdf, beta);
+    // float misWeightIndirect = bxdfIndirectLightPdf / (indirectLightPower + bxdfIndirectLightPdf);
 
-    // Pathtrace
-    depth++;
-    Ray bounceRay(hit.p, bxdfPathSample.direction);
-    indirectLight += misWeightIndirect * TracePath(bounceRay, sampler, depth) * bxdfPathSample.color / bxdfPathSample.pdf;
-    indirectLight /= pSurvive; // RR compensation
+    // // Pathtrace
+    // depth++;
+    // Ray bounceRay(hit.p, bxdfPathSample.direction);
+    // indirectLight += misWeightIndirect * TracePath(bounceRay, sampler, depth) * bxdfPathSample.color / bxdfPathSample.pdf;
+    // indirectLight /= pSurvive; // RR compensation
     
     // Add contributions
-    color += directLight + indirectLight;
+    // color += directLight + indirectLight;
+    color += directLight;
     return color;
 }
 
@@ -234,7 +224,7 @@ void Renderer::RenderPixel(int u, int v) {
     glm::vec3 color(0.0f);
     int depth = 0;
 
-    // Multi-sampling
+    // Supersampling
     for(int i = 0; i < spp; i++){
         // Generate halton jittered pixel coordinates
         glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
