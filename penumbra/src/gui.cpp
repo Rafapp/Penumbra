@@ -81,11 +81,14 @@ void GUI::Render() {
             ImGui::Unindent(20.0f);
 
             ImGui::Indent(20.0f);
-            // Sampling 
-            if (ImGui::CollapsingHeader("Sampling")) {
+            // Rendering 
+            if (ImGui::CollapsingHeader("Rendering")) {
                 ImGui::Text("Samples per Pixel");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::InputInt("##SamplesPerPixel", &spp, 0, 0);
+                ImGui::Text("Indirect Lighting");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##Indirect Lighting", &indirectLighting);
             }
             ImGui::Unindent(20.0f);
         }

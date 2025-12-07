@@ -25,8 +25,8 @@ public:
 class IdealLight : public Light {
 public:
     virtual ~IdealLight() = default;
-    
-    virtual glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer) = 0;
+
+    virtual bool Visible(const HitInfo& hit, const Renderer& renderer) = 0;
     virtual glm::vec3 GetRadiance(const HitInfo& hit) = 0;
     virtual LightSample Sample(const HitInfo& hit, Sampler& sampler) = 0;
     virtual float Pdf(const HitInfo& hit, const glm::vec3& wo) const = 0;
@@ -43,7 +43,7 @@ public:
     ~PointLight() = default;
 
     LightSample Sample(const HitInfo& hit, Sampler& sampler) override;
-    glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer) override;
+    bool Visible(const HitInfo& hit, const Renderer& renderer) override;
     glm::vec3 GetRadiance(const HitInfo& hit) override;
     float Pdf(const HitInfo& hit, const glm::vec3& wo) const override;
 };
@@ -63,9 +63,9 @@ public:
     AreaLightType GetType() const { return type; }
 
     virtual LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) = 0;
-    virtual glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) = 0;
+    virtual bool Visible(const HitInfo& hit, const Renderer& renderer) = 0;
     virtual glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) = 0;
-    virtual float Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const = 0;
+    virtual float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const = 0;
     Shape* shape = nullptr;
 private:
     AreaLightType type;
@@ -78,10 +78,10 @@ public:
     ~DiffuseAreaLight() = default;
 
     LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) override;
-    glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) override;
+    bool Visible(const HitInfo& hit, const Renderer& renderer) override;
     glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance * 4.0f * float(M_PI); }
     float GetSurfaceArea() const { return surfaceArea; }
-    float Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const override;
+    float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const override;
 private:
     glm::vec3 radiance;
     bool twoSided;

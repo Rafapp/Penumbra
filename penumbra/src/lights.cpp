@@ -28,27 +28,26 @@ DiffuseAreaLight::DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtDiffuseAreaLi
 }
 
 // === Shadow Factor ===
-glm::vec3 PointLight::Illuminated(const HitInfo& hit, const Renderer& renderer) {
+bool PointLight::Visible(const HitInfo& hit, const Renderer& renderer) {
     glm::vec3 toLight = position - hit.p;
     float dist = glm::length(toLight);
-    bool occluded = renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
-    return occluded ? glm::vec3(0.0f) : intensity;
+    return renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
 }
 
-glm::vec3 AreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
+bool AreaLight::Visible(const HitInfo& hit, const Renderer& renderer) {
     if(this->GetType() == AreaLightType::Diffuse) {
         auto diffuseAreaLight = static_cast<DiffuseAreaLight*>(this);
-        return diffuseAreaLight->Illuminated(hit, renderer, shape);
+        return diffuseAreaLight->Visible(hit, renderer);
     }
     // TODO: More area light types
+    return false;
 }
 
-glm::vec3 DiffuseAreaLight::Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) {
-    glm::vec3 toLight = shape.GetPosition() - hit.p;
+bool DiffuseAreaLight::Visible(const HitInfo& hit, const Renderer& renderer) {
+    if (!this->shape) return false;
+    glm::vec3 toLight = this->shape->GetPosition() - hit.p;
     float dist = glm::length(toLight);
-    bool occluded = renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
-    if(!occluded) return radiance;
-    return glm::vec3(0.0f);
+    return renderer.Occluded(hit.p, glm::normalize(toLight), hit.n, dist);
 }
 
 // === Radiance ===
@@ -130,22 +129,19 @@ float PointLight::Pdf(const HitInfo& hit, const glm::vec3& wo) const {
     return 0.0f;
 }
 
-float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const {
-    const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
+float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const {
+    const Sphere* sphere = dynamic_cast<const Sphere*>(shape);
     if (sphere) {
-        Ray r(hit.p, wo);
-        HitInfo lightHit;
-        if (!renderer.TraceRay(r,lightHit)) return 0.0f;
-
-        float dist2 = lightHit.t * lightHit.t;
-        glm::vec3 n = lightHit.n;
-        float cosLight = glm::dot(-wo, n);
-        if (cosLight <= 0.0f) return 0.0f;
-
-        bool occluded = renderer.Occluded(hit.p, wo, hit.n, lightHit.t);
-        if (occluded) return 0.0f;
-
-        return (1.0f / surfaceArea) * dist2 / cosLight;
+        // Find distance squared to hemisphere disk
+        glm::vec3 p = shape->GetPosition();
+        float d = glm::length(p - hit.p);
+        float d2 = d * d;
+                
+        // Compute PDF: We assume hit.n dot wi > 0
+        float r = sphere->GetRadius();
+        float r2 = r * r;
+        return d2 / (M_PI * r2);
     }
+    // TODO: Implement PDF for other shape types
     return 0.0f;
 }

@@ -9,7 +9,7 @@
 // TODO: Do we need a namespace or should we have a class?
 namespace Shading {
     struct BxDFSample {
-        glm::vec3 direction;  // Outgoing direction
+        glm::vec3 d;  // Outgoing direction
         glm::vec3 color;      // f(wi, wo) * cos(theta)
         float pdf;            // Probability of this sample
     };

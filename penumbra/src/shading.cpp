@@ -15,9 +15,9 @@ Shading::BxDFSample Shading::SampleMaterial(const HitInfo& hit, const Material* 
 
 Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler){
     BxDFSample sample;
-    sample.direction = sampler.SampleHemisphereCosine(hit.n);
+    sample.d = sampler.SampleHemisphereCosine(hit.n);
     sample.color = matte->GetAlbedo() / float(M_PI); // Lambertian BRDF
-    sample.pdf = glm::max(0.0f, glm::dot(hit.n, sample.direction)) / float(M_PI);
+    sample.pdf = glm::max(0.0f, glm::dot(hit.n, sample.d)) / float(M_PI);
     return sample;
 }
 

@@ -26,6 +26,7 @@ public:
     int GetRenderWidth() const { return renderWidth; }
     int GetRenderHeight() const { return renderHeight; }
     int GetSPP() const { return spp; }
+    bool GetIndirectLighting() const { return indirectLighting; }
 
 private:
     std::function<void()> renderCallback;
@@ -33,6 +34,7 @@ private:
     ImFont* font;
     int renderWidth = 960;
     int renderHeight = 540;
+    bool indirectLighting = true;
     int spp = 1;
 
     void SetupImGuiStyle();
