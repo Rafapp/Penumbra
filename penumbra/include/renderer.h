@@ -20,8 +20,8 @@
 #define OCCLUDED_EPS 1e-4f
 #define MAX_BOUNCES 0 
 #define INF_BOUNCES true
-// inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
-inline unsigned int NTHREADS = 2;
+inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
+// inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:

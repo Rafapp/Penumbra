@@ -185,17 +185,16 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     // === 4. Indirect lighting ===
     // ============================
 
-    // Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
-    // float pdf = bxdfPathSample.pdf;
-    // float d = glm::length(bxdfPathSample.direction);
-    // if (pdf > 0.0f && d * d > 0.0f) {
-    //     depth++;
-    //     Ray bounceRay(hit.p, bxdfPathSample.direction);
-    //     glm::vec3 Li = TracePath(bounceRay, sampler, depth);
-    //     float cosTheta = glm::max(0.0f, glm::dot(hit.n, bxdfPathSample.direction));
-    //     indirectLight += bxdfPathSample.color * Li * cosTheta / pdf;
-    //     indirectLight /= pSurvive;
-    // }
+    Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
+    float pdf = bxdfPathSample.pdf;
+    if (pdf > 0.0f) {
+        depth++;
+        Ray bounceRay(hit.p, bxdfPathSample.direction);
+        glm::vec3 Li = TracePath(bounceRay, sampler, depth);
+        float cosPath = glm::max(0.0f, glm::dot(hit.n, bxdfPathSample.direction));
+        indirectLight += Li * cosPath * bxdfPathSample.color / pdf;
+        indirectLight /= pSurvive;
+    }
     
     // Add contributions
     color += directLight + indirectLight;
