@@ -31,7 +31,7 @@ public:
     void RenderPixel(int u, int v);
     bool TraceRay(const Ray& ray, HitInfo& hit) const;
     bool Occluded(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
-    glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth);
+    glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput = glm::vec3(1.0f));
     void BeginRender();
     void StopRender();
     bool LoadScene(const std::string& filename);

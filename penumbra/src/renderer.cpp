@@ -88,7 +88,7 @@ bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
     return hitAny;
 }
 
-glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
+glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput) {
     glm::vec3 color(0.0f);
 
     // Cutoff
@@ -100,12 +100,14 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
 
     // Russian Roulette
     float pSurvive = 1.0f;
-    if (depth > 3){
-        pSurvive = 0.95f;
+    if (depth > 1){
+        float maxEnergy = glm::max(glm::max(throughput.r, throughput.g), throughput.b);
+        pSurvive = glm::max(0.05f, maxEnergy);
         float x = sampler.Sample1D();
         if (x > pSurvive) {
             return color;
         }
+        throughput /= pSurvive;
     }
 
     // Trace ray
@@ -176,8 +178,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
         float d = glm::length(toLight);
         glm::vec3 wi = toLight / d;
         if(!Occluded(hit.p, wi, hit.n, d)){
-            float cosHit = glm::max(0.0f, glm::dot(hit.n, wi)) / (d * d);
-            directLight += cosHit * randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) / (pLight * randomAreaLightSample.pdf);
+            float pdf = randomAreaLightSample.pdf * pLight;
+            if(pdf > 0.0f){
+                float cosHit = glm::max(0.0f, glm::dot(hit.n, wi)) / (d * d);
+                directLight += throughput * cosHit * randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) / (pdf);
+            }
         }
     }
     
@@ -190,10 +195,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     if (pdf > 0.0f) {
         depth++;
         Ray bounceRay(hit.p, bxdfPathSample.direction);
-        glm::vec3 Li = TracePath(bounceRay, sampler, depth);
         float cosPath = glm::max(0.0f, glm::dot(hit.n, bxdfPathSample.direction));
-        indirectLight += Li * cosPath * bxdfPathSample.color / pdf;
-        indirectLight /= pSurvive;
+        glm::vec3 newThroughput = throughput * bxdfPathSample.color * cosPath / pdf;
+        indirectLight += TracePath(bounceRay, sampler, depth, newThroughput);
     }
     
     // Add contributions
