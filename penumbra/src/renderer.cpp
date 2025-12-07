@@ -170,52 +170,35 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth) {
     //     }
     // }
 
-    // 2. Area light
+    // 2. Area light (assuming extended point light lambertian emitter for now)
     if (randomAreaLightSample.pdf > 0.0f) {
         glm::vec3 toLight = randomAreaLightSample.p - hit.p;
         float d = glm::length(toLight);
         glm::vec3 wi = toLight / d;
         if(!Occluded(hit.p, wi, hit.n, d)){
-            float cosHit = glm::dot(hit.n, wi);
-            if (cosHit > 0.0f) {
-                float G = cosHit / d;
-                directLight += G * randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) / (pLight * randomAreaLightSample.pdf);
-                return directLight;
-            }
+            float cosHit = glm::max(0.0f, glm::dot(hit.n, wi)) / (d * d);
+            directLight += cosHit * randomAreaLightSample.L * Shading::ShadeMaterial(hit, wi, mat) / (pLight * randomAreaLightSample.pdf);
         }
-
     }
     
     // ============================
     // === 4. Indirect lighting ===
     // ============================
 
-    // Sample BxDF to get new path direction
     // Shading::BxDFSample bxdfPathSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
-    // float bxdfIndirectLightPdf = glm::pow(bxdfPathSample.pdf, beta);
-
-    // // Sample all lights to find pdf for  that direction
-    // float indirectLightPdf = 0.0f;
-    // for(Light* light : scene->lights){
-    //     if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
-    //         indirectLightPdf += pLight * idealLight->Sample(hit, sampler).pdf;
-    //     } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
-    //         indirectLightPdf += pLight * areaLight->Sample(hit, sampler, *areaLight->shape).pdf;
-    //     }
+    // float pdf = bxdfPathSample.pdf;
+    // float d = glm::length(bxdfPathSample.direction);
+    // if (pdf > 0.0f && d * d > 0.0f) {
+    //     depth++;
+    //     Ray bounceRay(hit.p, bxdfPathSample.direction);
+    //     glm::vec3 Li = TracePath(bounceRay, sampler, depth);
+    //     float cosTheta = glm::max(0.0f, glm::dot(hit.n, bxdfPathSample.direction));
+    //     indirectLight += bxdfPathSample.color * Li * cosTheta / pdf;
+    //     indirectLight /= pSurvive;
     // }
-
-    // float indirectLightPower = glm::pow(indirectLightPdf, beta);
-    // float misWeightIndirect = bxdfIndirectLightPdf / (indirectLightPower + bxdfIndirectLightPdf);
-
-    // // Pathtrace
-    // depth++;
-    // Ray bounceRay(hit.p, bxdfPathSample.direction);
-    // indirectLight += misWeightIndirect * TracePath(bounceRay, sampler, depth) * bxdfPathSample.color / bxdfPathSample.pdf;
-    // indirectLight /= pSurvive; // RR compensation
     
     // Add contributions
-    // color += directLight + indirectLight;
-    color += directLight;
+    color += directLight + indirectLight;
     return color;
 }
 

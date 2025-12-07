@@ -37,7 +37,7 @@ int Sampler::SampleInt(int min, int max) {
     return distribution(generator);
 }
 
-glm::vec2 Sampler::SampleUnitDisk() {
+glm::vec2 Sampler::SampleUnitDiskUniform() {
     float u1 = Sample1D();
     float u2 = Sample1D();
 

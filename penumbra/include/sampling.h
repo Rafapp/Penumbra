@@ -14,7 +14,7 @@ public:
     glm::vec3 SampleSphereUniform();
     glm::vec3 SampleHemisphereUniform(const glm::vec3& normal);
     glm::vec3 SampleHemisphereCosine(const glm::vec3& normal);
-    glm::vec2 SampleUnitDisk();
+    glm::vec2 SampleUnitDiskUniform();
 
 protected:
     std::mt19937 generator;

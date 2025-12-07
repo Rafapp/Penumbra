@@ -79,7 +79,7 @@ public:
 
     LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) override;
     glm::vec3 Illuminated(const HitInfo& hit, const Renderer& renderer, const Shape& shape) override;
-    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance; }
+    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance * 4.0f * float(M_PI); }
     float GetSurfaceArea() const { return surfaceArea; }
     float Pdf(const HitInfo& hit, const Renderer& renderer, const Shape& shape, const glm::vec3& wo) const override;
 private:

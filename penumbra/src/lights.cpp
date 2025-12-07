@@ -72,28 +72,56 @@ LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
 }
 
 LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) {
-    LightSample sample;
+    glm::vec3 p = shape.GetPosition();
+    glm::vec3 n = hit.n;
 
+    // Fallback
+    LightSample sample;
+    sample.p = p;
+    sample.n = n;
+    sample.L = radiance;
+    sample.pdf = 1.0f;
+
+    // Sample point in sphere equator disk
     const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
     if (sphere) {
-        float r = sphere->GetRadius();
-        glm::vec3 p = shape.GetPosition();
-        glm::vec3 n = sampler.SampleHemisphereUniform(glm::normalize(hit.p - p));
-        glm::vec3 x = p + r * n;
 
-        sample.p = x;
-        sample.n = n;
-        sample.L = GetRadiance(hit, shape);
-        sample.pdf = 1.0f / (2.0f * M_PI);
+        glm::vec3 p = shape.GetPosition();
+        glm::vec3 toLight = p - hit.p;
+        glm::vec3 wi = glm::normalize(toLight);
+        glm::vec3 wo = -wi;
+
+        // Distance to equator disk
+        float d = glm::length(toLight);
+        float d2 = d * d;
+        float r = sphere->GetRadius();
+        float r2 = r * r;
+        float t = (d2 - r2) / d;
+
+        // Sample disk and scale to radius
+        glm::vec2 sdu = sampler.SampleUnitDiskUniform();
+        glm::vec2 sdv = sdu * r;
+
+        // Orthonormal basis for disk
+        glm::vec3 b1 = glm::normalize(glm::cross(wo, glm::vec3(0, 1, 0)));
+        glm::vec3 b2 = glm::cross(wo, b1);
+
+        // Find position and normal of point on disk 
+        glm::vec3 pd = (hit.p + t * wi) + (sdv.x * b1) + (sdv.y * b2);
+
+        sample.p = pd;
+        sample.n = wo;
+
+        // Compute PDF: 1 / disk area
+        float da = M_PI * r2;
+        sample.pdf = 1.0f / da;
+
+        // Note: GetRadiance() scales by 4pi to convert radiance to total emitted power
+        sample.L = GetRadiance(hit, shape); 
         return sample;
     }
 
-    //  TODO: Implement other shape types
-    std::cerr << "Warning: DiffuseAreaLight::Sample not implemented for this shape type. Returning default sample." << std::endl;
-    sample.p = shape.GetPosition();
-    sample.n = hit.n;
-    sample.L = radiance;
-    sample.pdf = 1.0f;
+    // TODO: Implement sampling for other shape types
     return sample;
 }
 

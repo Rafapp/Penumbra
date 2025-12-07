@@ -11,7 +11,7 @@ WorldBegin
 
 # === Lights ===
 AttributeBegin
-  Translate 0.0 0.0 20.0
+  Translate 0.0 0.0 22.0
   Scale 1.0 1.0 1.0
 	AreaLightSource "diffuse" "rgb L" [15 15 15]
   Shape "sphere" "float radius" [1.0]
@@ -47,7 +47,7 @@ AttributeEnd
 
 # Left
 AttributeBegin
-  Material "matte" "rgb Kd" [1.0 0.2 0.2]
+  Material "matte" "rgb Kd" [0.5 0.25 0.25]
   Translate -15.0 0.0 12.0
   Rotate 90 0 1 0
   Scale 64 64 64
@@ -56,7 +56,7 @@ AttributeEnd
 
 # Right
 AttributeBegin
-  Material "matte" "rgb Kd" [0.2 1.0 0.2]
+  Material "matte" "rgb Kd" [0.25 0.5 0.25]
   Translate 15.0 0.0 12.0
   Rotate -90 0 1 0
   Scale 64 64 64
