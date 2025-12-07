@@ -4,16 +4,16 @@
 #include "lights.h"
 
 // === BxDF Sampling ===    
-Shading::BxDFSample Shading::SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& wi, Sampler& sampler) {
+Shading::BxDFSample Shading::SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& d, Sampler& sampler) {
     if (material->GetType() == minipbrt::MaterialType::Matte) {
         auto matte = static_cast<const MatteMaterial*>(material);
-        return SampleMatte(hit, matte, wi, sampler);
+        return SampleMatte(hit, matte, d, sampler);
     }
     // Add other material types
     return {};
 }
 
-Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler){
+Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& d, Sampler& sampler){
     BxDFSample sample;
     sample.d = sampler.SampleHemisphereCosine(hit.n);
     sample.color = matte->GetAlbedo() / float(M_PI); // Lambertian BRDF

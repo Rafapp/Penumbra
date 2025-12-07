@@ -86,6 +86,9 @@ void GUI::Render() {
                 ImGui::Text("Samples per Pixel");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::InputInt("##SamplesPerPixel", &spp, 0, 0);
+                ImGui::Text("Direct Lighting");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##Direct Lighting", &directLighting);
                 ImGui::Text("Indirect Lighting");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::Checkbox("##Indirect Lighting", &indirectLighting);

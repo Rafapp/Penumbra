@@ -26,6 +26,7 @@ public:
     int GetRenderWidth() const { return renderWidth; }
     int GetRenderHeight() const { return renderHeight; }
     int GetSPP() const { return spp; }
+    bool GetDirectLighting() const { return directLighting; }
     bool GetIndirectLighting() const { return indirectLighting; }
 
 private:
@@ -34,6 +35,7 @@ private:
     ImFont* font;
     int renderWidth = 960;
     int renderHeight = 540;
+    bool directLighting = true;
     bool indirectLighting = true;
     int spp = 1;
 

@@ -42,6 +42,7 @@ void Renderer::BeginRender() {
     renderWidth = gui->GetRenderWidth();
     renderHeight = gui->GetRenderHeight();
     spp = gui->GetSPP();
+    directLighting = gui->GetDirectLighting();
     indirectLighting = gui->GetIndirectLighting();
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
@@ -99,7 +100,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         pSurvive = glm::max(0.05f, maxEnergy);
         float x = sampler.Sample1D();
         if (x > pSurvive) {
-            return color;
+            return throughput * color;
         }
         throughput /= pSurvive;
     }
@@ -120,7 +121,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
     if (hit.areaLight != nullptr) {
         AreaLight* areaLight = dynamic_cast<AreaLight*>(hit.areaLight);
-        return throughput * areaLight->GetRadiance(hit,*areaLight->shape);
+        return areaLight->GetRadiance(hit,*areaLight->shape);
     }
 
     // ================================
@@ -180,7 +181,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
                 float bxdfPower = glm::pow(bxdfPdf, beta);
                 float mis = (lightPower / (lightPower + bxdfPower));
                 float cosHit = glm::max(0.0f, glm::dot(hit.n, wi)) / (d * d);
-                directLight += throughput * mis * cosHit * randomAreaLightSample.L * matSample.color / (lightPdf);
+                directLight += mis * cosHit * randomAreaLightSample.L * matSample.color / (lightPdf);
             }
         }
     }
@@ -189,40 +190,36 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     // === 4. Indirect lighting ===
     // ============================
 
-    if(!indirectLighting) {
-        return color + directLight;
-    }
+    if(indirectLighting) {
+        // Sample BxDF for new direction
+        Shading::BxDFSample matSample = Shading::SampleMaterial(hit, mat, -ray.d, sampler);
+        float bxdfPdf = matSample.pdf;
 
-    // Add light path sample PDF's
-    Shading::BxDFSample matSample = Shading::SampleMaterial(hit, mat, ray.d, sampler);
-    float bxdfPdf = matSample.pdf;
-    if(bxdfPdf > 0){
-        float lightPdf = 0.0f;
-        // TODO: Occlusion testing
-        for(Light* light : scene->lights){
-            // TODO: Not huge fan of polymorphism here
-            if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
-                lightPdf += idealLight->Pdf(hit, matSample.d);
-            } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
-                lightPdf += areaLight->Pdf(hit, *this, matSample.d);
+        // Average BxDF path light PDF's
+        if(bxdfPdf > 0){
+            float lightPdf = 0.0f;
+            for(Light* light : scene->lights){
+                // TODO: Not huge fan of polymorphism here
+                if(IdealLight* idealLight = dynamic_cast<IdealLight*>(light)){
+                    lightPdf += idealLight->Pdf(hit, matSample.d);
+                } else if(AreaLight* areaLight = dynamic_cast<AreaLight*>(light)){
+                    lightPdf += areaLight->Pdf(hit, *this, matSample.d);
+                }
             }
-        }
-        
-        lightPdf /= nLights;
+            
+            lightPdf /= nLights;
 
-        depth++;
-        // float lightPower = glm::pow(lightPdf, beta);
-        // float bxdfPower = glm::pow(bxdfPdf, beta);
-        // float mis = (bxdfPower / (lightPower + bxdfPower));
-        // float cosPath = glm::max(0.0f, glm::dot(hit.n, matSample.d));
-        // glm::vec3 newThroughput = throughput * mis * matSample.color * cosPath / bxdfPdf;
-        glm::vec3 newThroughput = throughput * matSample.color / bxdfPdf;
-        // std::cout << "lightPdf: " << lightPdf << ", bxdfPdf: " << bxdfPdf 
-        // << ", mis: " << mis << ", newThroughput: " << glm::length(newThroughput) << std::endl;
-        Ray bounceRay(hit.p, matSample.d);
-        indirectLight += TracePath(bounceRay, sampler, depth, newThroughput);
-    }
-    
+            depth++;
+            float lightPower = glm::pow(lightPdf, beta);
+            float bxdfPower = glm::pow(bxdfPdf, beta);
+            float mis = (bxdfPower / (lightPower + bxdfPower));
+            float cosPath = glm::max(0.0f, glm::dot(hit.n, matSample.d));
+            glm::vec3 newThroughput = throughput * mis * matSample.color * cosPath / bxdfPdf;
+            Ray bounceRay(hit.p, matSample.d);
+            indirectLight += TracePath(bounceRay, sampler, depth, newThroughput);
+        }
+    } 
+
     // Add contributions
     color += directLight + indirectLight;
     return color;

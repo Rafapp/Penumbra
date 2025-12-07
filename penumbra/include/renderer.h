@@ -51,6 +51,7 @@ private:
     // GUI Variables
     GUI* gui = nullptr;
     bool indirectLighting = true;
+    bool directLighting = true;
     int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
