@@ -188,8 +188,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
                     float lightPower = glm::pow(lightPdf, beta);
                     float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
                     float bxdfPower = glm::pow(bxdfPdf, beta);
-                    // float mis = (lightPower / (lightPower + bxdfPower));
-                    float mis = 1.0f;
+                    float mis = (lightPower / (lightPower + bxdfPower));
                     glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
                     directLight += throughput * mis * randomAreaLightSample.L * matColor / lightPdf;
                 }
@@ -219,11 +218,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         float bxdfPower = glm::pow(bxdfPdf, beta);
         float mis = (bxdfPower / (lightPower + bxdfPower));
         float cos = glm::max(0.0f, glm::dot(hit.n, matSample.d));
-        glm::vec3 newThroughput = throughput * cos * matSample.color / bxdfPdf;
+        glm::vec3 newThroughput = mis * throughput * cos * matSample.color / bxdfPdf;
         Ray bounceRay(hit.p + OCCLUDED_EPS * hit.n, matSample.d);
         glm::vec3 Li = TracePath(bounceRay, sampler, depth, newThroughput);
-        indirectLight += mis * Li;
-    } 
+        indirectLight += Li;
+    }
 
     // Add contributions
     if(!indirectLighting) return directLight;
