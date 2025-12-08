@@ -33,7 +33,7 @@ glm::vec3 Shading::ShadeMaterial(const HitInfo& hit, const glm::vec3& wi, const 
 }
 
 glm::vec3 Shading::ShadeMatte(const HitInfo& hit, const glm::vec3& wi, const MatteMaterial* matte) {
-    return matte->GetAlbedo() / float(M_PI);
+    return glm::dot(hit.n, wi) * matte->GetAlbedo() / float(M_PI);
 }
 
 // === BxDF PDF's ===

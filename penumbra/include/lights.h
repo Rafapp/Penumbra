@@ -12,6 +12,7 @@ struct LightSample{
     glm::vec3 p;
     glm::vec3 n;
     glm::vec3 L;
+    glm::vec3 d;
     float pdf;
 };
 
@@ -79,7 +80,7 @@ public:
 
     LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) override;
     bool Visible(const HitInfo& hit, const Renderer& renderer) override;
-    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance * 4.0f * float(M_PI); }
+    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance; }
     float GetSurfaceArea() const { return surfaceArea; }
     float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const override;
 private:
