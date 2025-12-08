@@ -110,7 +110,7 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
         Ray lightRay(hit.p + OCCLUDED_EPS * hit.n, dWorld);
         HitInfo lightHit;
         renderer.TraceRay(lightRay, lightHit);
-        if(lightHit.areaLight == nullptr){
+        if(lightHit.shape != sphere){
             sample.p = lightHit.p;
             sample.n = normalize(sample.p - p);
             sample.L = glm::vec3(0.0f);
@@ -145,24 +145,19 @@ float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const 
     const Sphere* sphere = dynamic_cast<const Sphere*>(shape);
     if (sphere) {
 
-        // Test if we hit light at sample direction 
+        // Test if ray hits and we hit light at path direction 
         HitInfo lightHit;
-        if(renderer.TraceRay(Ray(hit.p + OCCLUDED_EPS * hit.n, wi), lightHit)) {
-            if(!(lightHit.areaLight == nullptr)) {
-                return 0.0f;
-            } 
-        }
+        Ray lightRay(hit.p + OCCLUDED_EPS * hit.n, wi);
+        if (!renderer.TraceRay(lightRay, lightHit)) return 0.0f;
+        if (lightHit.shape != sphere) return 0.0f;
 
-        glm::vec3 n = hit.n;
         glm::vec3 p = sphere->GetPosition();
-        glm::vec3 wo = glm::normalize(hit.p - p);
-        glm::vec3 wi = -wo;
         float r = sphere->GetRadius();
-
-        // Compute PDF: 1 / sphere visible cap projection onto hemisphere
+        float r2 = r * r;
         float d = glm::length(p - hit.p);
         float d2 = d * d;
-        float r2 = r * r;
+
+        // Compute PDF: 1 / visible hemisphere cap
         float cos = glm::sqrt(1.0f - (r2 / d2));
         return 1.0f / (2.0f * M_PI * (1.0f - cos));
     }
