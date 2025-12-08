@@ -64,63 +64,75 @@ glm::vec3 PointLight::GetRadiance(const HitInfo& hit) {
 LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
     LightSample sample;
     sample.p = position;
-    sample.n = hit.n;
+    glm::vec3 wo = glm::normalize(position - hit.p);
+    sample.n = wo;
     sample.L = GetRadiance(hit);
     sample.pdf = 1.0f / (4.0f * M_PI);
     return sample;
 }
 
-LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) {
-    glm::vec3 p = shape.GetPosition();
-    glm::vec3 n = hit.n;
-
-    // Fallback
+LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sampler& sampler, const Shape& shape) {
     LightSample sample;
-    sample.p = p;
-    sample.n = n;
-    sample.L = radiance;
-    sample.pdf = 1.0f;
+    glm::vec3 n = hit.n;
+    glm::vec3 p = shape.GetPosition();
+    glm::vec3 wi = glm::normalize(p - hit.p);
+    glm::vec3 wo = -wi;
 
-    // Sample point in sphere equator disk
     const Sphere* sphere = dynamic_cast<const Sphere*>(&shape);
     if (sphere) {
 
-        glm::vec3 p = shape.GetPosition();
-        glm::vec3 toLight = p - hit.p;
-        glm::vec3 wi = glm::normalize(toLight);
-        glm::vec3 wo = -wi;
-
-        // Distance to equator disk
-        float d = glm::length(toLight);
-        float d2 = d * d;
         float r = sphere->GetRadius();
         float r2 = r * r;
-        float t = (d2 - r2) / d;
+        glm::vec3 tl = p - hit.p;
+        float d = glm::length(tl);
+        float d2 = d * d;
 
-        // Sample disk and scale to radius
-        glm::vec2 sdu = sampler.SampleUnitDiskUniform();
-        glm::vec2 sdv = sdu * r;
+        // Sample only visible cap directions
+        float cosThetaMax = glm::sqrt(1.0f - (r2 / d2));
+        float u = sampler.Sample1D();
+        float cosTheta = 1.0f - u * (1.0f - cosThetaMax);
+        float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+        float phi = 2 * M_PI * sampler.Sample1D();
+        glm::vec3 dLocal = glm::vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
-        // Orthonormal basis for disk
-        glm::vec3 b1 = glm::normalize(glm::cross(wo, glm::vec3(0, 1, 0)));
-        glm::vec3 b2 = glm::cross(wo, b1);
+        // Create orthonormal basis for hitpoint. TODO: Utility function for this
+        glm::vec3 N = wi; 
+        glm::vec3 T, B;
+        if (fabs(N.x) > fabs(N.z)) {
+            T = glm::normalize(glm::vec3(-N.y, N.x, 0.0f));
+        } else {
+            T = glm::normalize(glm::vec3(0.0f, -N.z, N.y));
+        }
+        B = glm::cross(N, T);
 
-        // Find position and normal of point on disk 
-        glm::vec3 pd = (hit.p + t * wi) + (sdv.x * b1) + (sdv.y * b2);
+        // Find point and normal in sphere using sampled direction
+        glm::vec3 dWorld = dLocal.x * T + dLocal.y * B + dLocal.z * N;
+        Ray lightRay(hit.p + OCCLUDED_EPS * hit.n, dWorld);
+        HitInfo lightHit;
+        renderer.TraceRay(lightRay, lightHit);
+        if(lightHit.areaLight == nullptr){
+            sample.p = lightHit.p;
+            sample.n = normalize(sample.p - p);
+            sample.L = glm::vec3(0.0f);
+            sample.pdf = 0.0f;
+            return sample;
+        }
+        sample.p = lightHit.p;
+        sample.n = normalize(sample.p - p);
 
-        sample.p = pd;
-        sample.n = wo;
+        // Compute PDF: 1 / visible hemisphere cap
+        float cos = glm::sqrt(1.0f - (r2 / d2));
+        sample.pdf = 1.0f / (2.0f * M_PI * (1.0f - cos));
 
-        // Compute PDF: 1 / disk area
-        float da = M_PI * r2;
-        sample.pdf = 1.0f / da;
-
-        // Note: GetRadiance() scales by 4pi to convert radiance to total emitted power
         sample.L = GetRadiance(hit, shape); 
         return sample;
     }
 
     // TODO: Implement sampling for other shape types
+    sample.p = p;
+    sample.n = wo;
+    sample.L = radiance;
+    sample.pdf = 1.0f;
     return sample;
 }
 
@@ -129,18 +141,30 @@ float PointLight::Pdf(const HitInfo& hit, const glm::vec3& wo) const {
     return 0.0f;
 }
 
-float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const {
+float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wi) const {
     const Sphere* sphere = dynamic_cast<const Sphere*>(shape);
     if (sphere) {
-        // Find distance squared to hemisphere disk
-        glm::vec3 p = shape->GetPosition();
+
+        // Test if we hit light at sample direction 
+        HitInfo lightHit;
+        if(renderer.TraceRay(Ray(hit.p + OCCLUDED_EPS * hit.n, wi), lightHit)) {
+            if(!(lightHit.areaLight == nullptr)) {
+                return 0.0f;
+            } 
+        }
+
+        glm::vec3 n = hit.n;
+        glm::vec3 p = sphere->GetPosition();
+        glm::vec3 wo = glm::normalize(hit.p - p);
+        glm::vec3 wi = -wo;
+        float r = sphere->GetRadius();
+
+        // Compute PDF: 1 / sphere visible cap projection onto hemisphere
         float d = glm::length(p - hit.p);
         float d2 = d * d;
-                
-        // Compute PDF: We assume hit.n dot wi > 0
-        float r = sphere->GetRadius();
         float r2 = r * r;
-        return d2 / (M_PI * r2);
+        float cos = glm::sqrt(1.0f - (r2 / d2));
+        return 1.0f / (2.0f * M_PI * (1.0f - cos));
     }
     // TODO: Implement PDF for other shape types
     return 0.0f;

@@ -12,7 +12,6 @@ struct LightSample{
     glm::vec3 p;
     glm::vec3 n;
     glm::vec3 L;
-    glm::vec3 d;
     float pdf;
 };
 
@@ -63,10 +62,10 @@ public:
 
     AreaLightType GetType() const { return type; }
 
-    virtual LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) = 0;
+    virtual LightSample Sample(const HitInfo& hit, Renderer& renderer, Sampler& sampler, const Shape& shape) = 0;
     virtual bool Visible(const HitInfo& hit, const Renderer& renderer) = 0;
     virtual glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) = 0;
-    virtual float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const = 0;
+    virtual float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wi) const = 0;
     Shape* shape = nullptr;
 private:
     AreaLightType type;
@@ -78,11 +77,11 @@ public:
     DiffuseAreaLight(minipbrt::DiffuseAreaLight* pbrtAreaLight);
     ~DiffuseAreaLight() = default;
 
-    LightSample Sample(const HitInfo& hit, Sampler& sampler, const Shape& shape) override;
+    LightSample Sample(const HitInfo& hit, Renderer& renderer, Sampler& sampler, const Shape& shape) override;
     bool Visible(const HitInfo& hit, const Renderer& renderer) override;
-    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance; }
+    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance * 4.0f * float(M_PI); }
     float GetSurfaceArea() const { return surfaceArea; }
-    float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wo) const override;
+    float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wi) const override;
 private:
     glm::vec3 radiance;
     bool twoSided;
