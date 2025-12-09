@@ -25,7 +25,6 @@ public:
     void UpdateTexture(const std::vector<uint8_t>& pixels, int w, int h);
 
     static void ResizeCallbackStatic(GLFWwindow* window, int w, int h);
-    void ResizeCallback(GLFWwindow* window, int w, int h);
 
     std::vector<uint8_t>& GetWindowBuffer(){ return windowBuffer; }
     

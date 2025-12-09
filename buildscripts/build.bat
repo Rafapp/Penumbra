@@ -1,77 +1,103 @@
-﻿@echo off
-setlocal enabledelayedexpansion
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
 
-REM Colors using ANSI escape codes (requires Windows 10+)
-for /F %%A in ('echo prompt $H ^| cmd') do set "BS=%%A"
-set "RED=[91m"
-set "GREEN=[92m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "CYAN=[96m"
-set "MAGENTA=[95m"
-set "BOLD=[1m"
-set "NC=[0m"
+REM ============================================================
+REM   ENABLE UTF-8 + ANSI COLORS ON WINDOWS TERMINAL / CMD
+REM ============================================================
+chcp 65001 >nul
 
-REM Get script directory
+REM Enable ANSI VT if not already enabled
+for /f "tokens=2 delims=: " %%A in ('reg query HKCU\Console /v VirtualTerminalLevel 2^>nul') do set VTL=%%A
+if not defined VTL (
+    reg add HKCU\Console /f /v VirtualTerminalLevel /t REG_DWORD /d 1 >nul
+)
+
+REM ============================================================
+REM   COLOR CONSTANTS (ESC =  character)
+REM ============================================================
+set "ESC="
+set "RED=%ESC%[31m"
+set "GREEN=%ESC%[32m"
+set "YELLOW=%ESC%[33m"
+set "BLUE=%ESC%[34m"
+set "MAGENTA=%ESC%[35m"
+set "CYAN=%ESC%[36m"
+set "BOLD=%ESC%[1m"
+set "NC=%ESC%[0m"
+
+REM ============================================================
+REM   SCRIPT LOCATION + DEFAULTS
+REM ============================================================
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_DIR=%SCRIPT_DIR%.."
 
-REM Default values
 set "HEADLESS=OFF"
 set "BUILD_TYPE=Release"
 set "VERIFY=ON"
 set "OPTIMIZED=ON"
 
-REM Parse arguments
+REM ============================================================
+REM   ARGUMENT PARSING
+REM ============================================================
 :parse_args
 if "%~1"=="" goto args_done
+
 if /i "%~1"=="--headless" (
     set "HEADLESS=ON"
     shift
     goto parse_args
 )
+
 if /i "%~1"=="--debug" (
     set "BUILD_TYPE=Debug"
     shift
     goto parse_args
 )
+
 if /i "%~1"=="--verify" (
     set "VERIFY=ON"
     shift
     goto parse_args
 )
+
 if /i "%~1"=="--no-verify" (
     set "VERIFY=OFF"
     shift
     goto parse_args
 )
+
 if /i "%~1"=="--no-optimize" (
     set "OPTIMIZED=OFF"
     shift
     goto parse_args
 )
+
 if /i "%~1"=="--help" (
     echo Usage: build.bat [options]
     echo.
     echo Options:
     echo   --headless      Build headless version
-    echo   --debug         Build debug version (default: Release)
-    echo   --verify        Enable library verification (default: ON)
-    echo   --no-verify     Skip library verification tests
+    echo   --debug         Build Debug instead of Release
+    echo   --verify        Run verification tests
+    echo   --no-verify     Skip verification tests
     echo   --no-optimize   Disable optimizations
-    echo   --help          Show this message
+    echo   --help          Show this help
     exit /b 0
 )
+
 echo Unknown option: %~1
-echo Use --help for usage information
 exit /b 1
 
 :args_done
 cls
-echo %BOLD%%CYAN%╔════════════════════════════════════════╗%NC%
-echo %BOLD%%CYAN%║         Building Penumbra Pathtracer   ║%NC%
-echo %BOLD%%CYAN%╚════════════════════════════════════════╝%NC%
-echo.
+
+REM ============================================================
+REM   BANNER
+REM ============================================================
+echo %CYAN%%BOLD%╔══════════════════════════════════════════════╗%NC%
+echo %CYAN%%BOLD%║         Building Penumbra Pathtracer         ║%NC%
+echo %CYAN%%BOLD%╚══════════════════════════════════════════════╝%NC%
+
 echo %BOLD%Configuration:%NC%
 echo   Headless:    %MAGENTA%!HEADLESS!%NC%
 echo   Build Type:  %MAGENTA%!BUILD_TYPE!%NC%
@@ -79,47 +105,50 @@ echo   Verify:      %MAGENTA%!VERIFY!%NC%
 echo   Optimize:    %MAGENTA%!OPTIMIZED!%NC%
 echo.
 
-cd /d "!PROJECT_DIR!"
+REM ============================================================
+REM   BUILD DIRECTORY
+REM ============================================================
+cd /d "%PROJECT_DIR%"
 if not exist build mkdir build
-cd /d "!PROJECT_DIR!\build"
+cd build
 
-echo %BOLD%%BLUE%[1/2]%NC% %BOLD%Configuring CMake and fetching libraries...%NC%
+REM ============================================================
+REM   STEP 1: CMAKE CONFIG
+REM ============================================================
+echo %BLUE%%BOLD%[1/2]%NC% %BOLD%Configuring CMake...%NC%
+
 cmake .. ^
   -DCMAKE_BUILD_TYPE=!BUILD_TYPE! ^
   -DENABLE_OPTIMIZATIONS=!OPTIMIZED! ^
   -DPATHTRACER_HEADLESS=!HEADLESS!
 
 if errorlevel 1 (
-    echo %RED%✗ CMake configuration failed!%NC%
+    echo %RED%✗ CMake configuration FAILED%NC%
     exit /b 1
 )
 
 echo %GREEN%✓ Configuration complete%NC%
 echo.
-echo %BOLD%%BLUE%[2/2]%NC% %BOLD%Building Penumbra with libraries:%NC%
-echo   %CYAN%◆%NC% GLFW
-echo   %CYAN%◆%NC% GLM
-echo   %CYAN%◆%NC% Assimp
-echo   %CYAN%◆%NC% TinyBVH
-echo   %CYAN%◆%NC% OpenImageIO
-echo   %CYAN%◆%NC% ImGui
-echo.
 
+REM ============================================================
+REM   STEP 2: BUILD
+REM ============================================================
+echo %BLUE%%BOLD%[2/2]%NC% %BOLD%Building Penumbra...%NC%
 cmake --build . --config !BUILD_TYPE!
 
 if errorlevel 1 (
-    echo %RED%✗ Build failed!%NC%
-    echo.
-    echo %BOLD%%RED%Please fix the errors above and try again.%NC%
+    echo %RED%✗ Build FAILED%NC%
     exit /b 1
 )
 
-echo.
 echo %GREEN%✓ Build successful!%NC%
 echo.
 
-if "!VERIFY!"=="ON" (
-    echo %BOLD%%BLUE%Running library verification tests...%NC%
+REM ============================================================
+REM   OPTIONAL: LIBRARY VERIFICATION
+REM ============================================================
+if /i "!VERIFY!"=="ON" (
+    echo %BLUE%%BOLD%Running verification tests...%NC%
     echo.
     ctest --output-on-failure -VV
     echo.
@@ -127,10 +156,10 @@ if "!VERIFY!"=="ON" (
 )
 
 echo.
-echo %BOLD%%CYAN%╔═══════════════════════════════╗%NC%
-echo %BOLD%%CYAN%║        Build Complete!        ║%NC%
-echo %BOLD%%CYAN%╚═══════════════════════════════╝%NC%
-echo %BOLD%%GREEN%Ready to render!%NC%
+echo %CYAN%%BOLD%╔═══════════════════════════════╗%NC%
+echo %CYAN%%BOLD%║        Build Complete!         ║%NC%
+echo %CYAN%%BOLD%╚═══════════════════════════════╝%NC%
+echo %GREEN%%BOLD%Ready to render!%NC%
 echo.
 
 endlocal

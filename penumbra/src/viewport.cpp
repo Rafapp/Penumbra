@@ -216,22 +216,27 @@ void Viewport::ShowViewport(){
     glfwSwapBuffers(window);
 }
 
-void Viewport::ResizeViewport(int width, int height){
-    width = width;
-    height = height;
-    glViewport(0, 0, width, height);
-}
-
 void Viewport::ResizeCallbackStatic(GLFWwindow* window, int w, int h){
+#ifdef __APPLE__ 
     Viewport* vp = static_cast<Viewport*>(glfwGetWindowUserPointer(window));
     if (vp) {
-        vp->ResizeCallback(window, w, h);
+		vp->ResizeViewport(window, w, h);
     }
+#elif _WIN32 
+    Viewport* vp = static_cast<Viewport*>(glfwGetWindowUserPointer(window));
+    if (vp) {
+        // Get actual framebuffer size, not window size
+        int fbw, fbh;
+        glfwGetFramebufferSize(window, &fbw, &fbh);
+        vp->ResizeViewport(fbw, fbh);
+    }
+#endif
 }
 
-void Viewport::ResizeCallback(GLFWwindow* window, int w, int h){
-    width = w;
-    height = h;
+void Viewport::ResizeViewport(int width, int height){
+    this->width = width;
+    this->height = height;
+    glViewport(0, 0, width, height);
     ShowViewport();
 }
 
