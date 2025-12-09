@@ -42,7 +42,7 @@ glm::vec2 Sampler::SampleUnitDiskUniform() {
     float u2 = Sample1D();
 
     float r = sqrt(u1);
-    float theta = 2.0f * M_PI * u2;
+    float theta = 2.0f *M_PI * u2;
 
     float x = r * cos(theta);
     float y = r * sin(theta);
@@ -56,7 +56,7 @@ glm::vec3 Sampler::SampleSphereUniform() {
 
     float z = 1.0f - 2.0f * u1;
     float r = sqrt(glm::max(0.0f, 1.0f - z * z));
-    float phi = 2.0f * M_PI * u2;
+    float phi = 2.0f *M_PI * u2;
 
     float x = r * cos(phi);
     float y = r * sin(phi);
@@ -70,7 +70,7 @@ glm::vec3 Sampler::SampleHemisphereUniform(const glm::vec3& normal) {
    float u2 = Sample1D();
 
    float r = sqrt(u1);
-   float theta = 2.0f * M_PI * u2;
+   float theta = 2.0f *M_PI * u2;
 
    float x = r * cos(theta);
    float y = r * sin(theta);
@@ -97,7 +97,7 @@ glm::vec3 Sampler::SampleHemisphereCosine(const glm::vec3& normal) {
     float u2 = Sample1D();
 
     float r = sqrt(u1);
-    float theta = 2.0f * M_PI * u2;
+    float theta = 2.0f *M_PI * u2;
 
     float x = r * cos(theta);
     float y = r * sin(theta);

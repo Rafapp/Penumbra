@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include "minipbrt.h"
 #include "glm/glm.hpp"
 

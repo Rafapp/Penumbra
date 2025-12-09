@@ -2,7 +2,7 @@
 #include "pbrtconverter.h"
 
 Ray PerspectiveCamera::GenerateRay(float u, float v, int width, int height) const {
-    float camFov = (fov * M_PI) / 180.0f;
+    float camFov = (fov *M_PI) / 180.0f;
     float h = 2.0f * focalDistance * tanf(camFov / 2.0f);
     float w = h * (width / (float)height);
     float x = -(w / 2.0f) + (w * u / width);

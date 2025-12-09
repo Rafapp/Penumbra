@@ -124,7 +124,7 @@ Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
 
     // Calculate surface area if sphere is area light
     if(areaLightId != minipbrt::kInvalidIndex) {
-        this->surfaceArea = 4.0f * M_PI * radius * radius;
+        this->surfaceArea = 4.0f *M_PI * radius * radius;
     }
 }
 
@@ -154,7 +154,7 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
 
     // TODO: Calculate surface area if mesh is area light
     // if(areaLightId != minipbrt::kInvalidIndex) {
-    //     this->surfaceArea = 4.0f * M_PI * radius * radius;
+    //     this->surfaceArea = 4.0f *M_PI * radius * radius;
     // }
 }
 

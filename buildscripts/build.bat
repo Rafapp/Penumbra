@@ -105,7 +105,7 @@ echo   %CYAN%◆%NC% OpenImageIO
 echo   %CYAN%◆%NC% ImGui
 echo.
 
-cmake --build . --config !BUILD_TYPE! -j %NUMBER_OF_PROCESSORS%
+cmake --build . --config !BUILD_TYPE!
 
 if errorlevel 1 (
     echo %RED%✗ Build failed!%NC%

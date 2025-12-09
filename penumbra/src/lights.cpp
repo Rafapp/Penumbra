@@ -67,7 +67,7 @@ LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
     glm::vec3 wo = glm::normalize(position - hit.p);
     sample.n = wo;
     sample.L = GetRadiance(hit);
-    sample.pdf = 1.0f / (4.0f * M_PI);
+    sample.pdf = 1.0f / (4.0f *M_PI);
     return sample;
 }
 
@@ -92,7 +92,7 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
         float u = sampler.Sample1D();
         float cosTheta = 1.0f - u * (1.0f - cosThetaMax);
         float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
-        float phi = 2 * M_PI * sampler.Sample1D();
+        float phi = 2 *M_PI * sampler.Sample1D();
         glm::vec3 dLocal = glm::vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
         // Create orthonormal basis for hitpoint. TODO: Utility function for this
@@ -122,7 +122,7 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
 
         // Compute PDF: 1 / visible hemisphere cap
         float cos = glm::sqrt(1.0f - (r2 / d2));
-        sample.pdf = 1.0f / (2.0f * M_PI * (1.0f - cos));
+        sample.pdf = 1.0f / (2.0f *M_PI * (1.0f - cos));
 
         sample.L = GetRadiance(hit, shape); 
         return sample;
@@ -159,7 +159,7 @@ float DiffuseAreaLight::Pdf(const HitInfo& hit, const Renderer& renderer, const 
 
         // Compute PDF: 1 / visible hemisphere cap
         float cos = glm::sqrt(1.0f - (r2 / d2));
-        return 1.0f / (2.0f * M_PI * (1.0f - cos));
+        return 1.0f / (2.0f *M_PI * (1.0f - cos));
     }
     // TODO: Implement PDF for other shape types
     return 0.0f;

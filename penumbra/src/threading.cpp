@@ -2,9 +2,13 @@
 #include <random>
 #include <algorithm>
 
-RenderThreadPool::RenderThreadPool(Scene* scene, int nThreads, int w, int h)
-    : scene(scene), nThreads(nThreads), w(w), h(h) {
-}
+//RenderThreadPool::RenderThreadPool(Scene* scene, int nThreads, int w, int h)
+//    : scene(scene), nThreads(nThreads), w(w), h(h),
+//    activeThreads(0), stop(false), tiles(0), tileSize(TILESIZE),
+//    tilesW(0), tilesH(0) {
+//    // Force body to exist
+//    (void)this;
+//}
 
 RenderThreadPool::~RenderThreadPool() { Stop(); }
 

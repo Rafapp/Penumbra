@@ -1,8 +1,10 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <glm/glm.hpp>
 #include <random>
-
 class Sampler {
 public:
     Sampler(uint32_t seed = 0);

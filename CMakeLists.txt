@@ -1,3 +1,6 @@
+# TODO: Fix
+set(CMAKE_PREFIX_PATH "C:/Users/rpadi/Documents/Dev/Penumbra/buildscripts/vcpkg/installed/x64-windows" ${CMAKE_PREFIX_PATH})
+
 cmake_minimum_required(VERSION 3.5...3.20)
 project(Penumbra)
 
@@ -16,6 +19,7 @@ include(ProcessorCount)
 ProcessorCount(N)
 if(NOT N EQUAL 0)
   set(CMAKE_BUILD_PARALLEL_LEVEL ${N})
+  message(STATUS "Building with ${N} parallel jobs") 
 endif()
 
 # === Platform ===
@@ -39,13 +43,16 @@ include(FetchContent)
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/libraries")
 
 # Assimp - 3D Model Importing 
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(assimp
   GIT_REPOSITORY https://github.com/assimp/assimp.git
-  GIT_TAG v6.0.2 
+  GIT_TAG v6.0.2
   CMAKE_ARGS 
     -DASSIMP_BUILD_TESTS=OFF 
     -DASSIMP_BUILD_ASSIMP_TOOLS=OFF
-    -DASSIMP_BUILD_MDL_IMPORTER=OFF # Unstable
+    -DASSIMP_BUILD_MDL_IMPORTER=OFF
+    -DASSIMP_INSTALL=OFF
+    -DBUILD_SHARED_LIBS=ON
 )
 
 # Minipbrt - read .pbrt scenes
@@ -62,18 +69,28 @@ find_package(OpenImageIO REQUIRED)
 FetchContent_Declare(tinybvh
   GIT_REPOSITORY https://github.com/jbikker/tinybvh.git
   GIT_TAG 4b5b649f1193374762b0247ee20de3345633bf9b 
+  CMAKE_ARGS
+    -DBUILD_SPEEDTEST=OFF
+    -DBUILD_SHARED_LIBS=OFF
 )
 
 # GLM - Math
 FetchContent_Declare(glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
   GIT_TAG 1.0.2 
+  CMAKE_ARGS
+    -DBUILD_SHARED_LIBS=OFF
 )
 
 # GLFW - Window, input, graphics
 FetchContent_Declare(glfw
   GIT_REPOSITORY https://github.com/glfw/glfw.git
   GIT_TAG 3.4
+  CMAKE_ARGS
+    -DGLFW_BUILD_DOCS=OFF
+    -DGLFW_BUILD_TESTS=OFF
+    -DGLFW_BUILD_EXAMPLES=OFF
+    -DBUILD_SHARED_LIBS=ON
 )
 
 # ImGui - GUI
@@ -82,7 +99,7 @@ FetchContent_Declare(imgui
   GIT_TAG v1.89.9
 )
 
-FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
+FetchContent_MakeAvailable(assimp minipbrt glm glfw imgui)
 
 # Fix the typo in main.cpp for minipbrt (put a PR already)
 file(READ ${minipbrt_SOURCE_DIR}/main.cpp contents)
@@ -94,7 +111,7 @@ option(PATHTRACER_HEADLESS "Build headless version" OFF)
 option(ENABLE_VERIFY_TESTS "Build library verification tests" ON)
 
 # === Inlcude ImGui library with GLFW backend ===
-add_library(imgui
+add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_demo.cpp
   ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -133,15 +150,46 @@ if(ENABLE_VERIFY_TESTS)
   )
   
   target_link_libraries(verify_libraries PRIVATE
-		glfw glm assimp imgui OpenImageIO::OpenImageIO glad
+		glfw assimp imgui OpenImageIO::OpenImageIO glad
   )
-  
+
+	if (WIN32)
+		set(_runtime_dlls
+			"${assimp_BINARY_DIR}/bin/Release/assimp-vc143-mt.dll"
+			"${glfw_BINARY_DIR}/src/Release/glfw3.dll"
+			"${CMAKE_PREFIX_PATH}/bin/OpenImageIO.dll"
+			"${CMAKE_PREFIX_PATH}/bin/OpenImageIO_Util.dll"
+			"${CMAKE_PREFIX_PATH}/bin/OpenEXR-3_4.dll"
+			"${CMAKE_PREFIX_PATH}/bin/IlmThread-3_4.dll"
+			"${CMAKE_PREFIX_PATH}/bin/Iex-3_4.dll"
+			"${CMAKE_PREFIX_PATH}/bin/OpenEXRCore-3_4.dll"
+			"${CMAKE_PREFIX_PATH}/bin/Imath-3_2.dll"
+			"${CMAKE_PREFIX_PATH}/bin/deflate.dll"
+			"${CMAKE_PREFIX_PATH}/bin/openjph.0.25.dll"
+		)
+
+		add_custom_command(
+			TARGET verify_libraries POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E echo "-- Copying runtime DLLs for verify_libraries"
+		)
+
+		foreach(dll IN LISTS _runtime_dlls)
+			add_custom_command(
+				TARGET verify_libraries POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different
+					"${dll}"
+					"$<TARGET_FILE_DIR:verify_libraries>"
+			)
+		endforeach()
+	endif()
   add_test(NAME VerifyLibraries COMMAND verify_libraries)
-endif()
+endif() 
 
 # === Main Executable ===
 file(GLOB SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/*.cpp)
+list(APPEND SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/threading.cpp)
 file(GLOB HEADER_FILES ${CMAKE_SOURCE_DIR}/penumbra/include/*.h)
+
 add_executable(penumbra ${SRC_FILES} ${HEADER_FILES})
 
 target_sources(penumbra PRIVATE
@@ -166,8 +214,38 @@ target_include_directories(penumbra SYSTEM PRIVATE
 )
 
 target_link_libraries(penumbra PRIVATE 
-	glfw glm assimp imgui OpenImageIO::OpenImageIO glad
+	glfw assimp imgui OpenImageIO::OpenImageIO glad
 )
+
+if (WIN32)
+    set(_runtime_dlls
+        "${assimp_BINARY_DIR}/bin/Release/assimp-vc143-mt.dll"
+        "${glfw_BINARY_DIR}/src/Release/glfw3.dll"
+        "${CMAKE_PREFIX_PATH}/bin/OpenImageIO.dll"
+        "${CMAKE_PREFIX_PATH}/bin/OpenImageIO_Util.dll"
+        "${CMAKE_PREFIX_PATH}/bin/OpenEXR-3_4.dll"
+        "${CMAKE_PREFIX_PATH}/bin/IlmThread-3_4.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Iex-3_4.dll"
+        "${CMAKE_PREFIX_PATH}/bin/OpenEXRCore-3_4.dll"
+        "${CMAKE_PREFIX_PATH}/bin/Imath-3_2.dll"
+        "${CMAKE_PREFIX_PATH}/bin/deflate.dll"
+        "${CMAKE_PREFIX_PATH}/bin/openjph.0.25.dll"
+    )
+
+    add_custom_command(
+        TARGET penumbra POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "-- Copying runtime DLLs for penumbra"
+    )
+
+    foreach(dll IN LISTS _runtime_dlls)
+        add_custom_command(
+            TARGET penumbra POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${dll}"
+                "$<TARGET_FILE_DIR:penumbra>"
+        )
+    endforeach()
+endif()
 
 # macOS requires Cocoa framework
 if(APPLE)
