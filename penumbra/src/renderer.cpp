@@ -39,11 +39,12 @@ void Renderer::BeginRender() {
         std::cerr << "Failed to reload scene" << std::endl;
         return;
     }
-    renderWidth = gui->GetRenderWidth();
-    renderHeight = gui->GetRenderHeight();
-    spp = gui->GetSPP();
-    directLighting = gui->GetDirectLighting();
-    indirectLighting = gui->GetIndirectLighting();
+    auto rs = gui->GetRenderSettings();
+    renderWidth = rs.width;
+    renderHeight = rs.height;
+    spp = rs.spp;
+    indirectLighting = rs.indirect;
+    misEnabled = rs.mis;
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
 
@@ -157,44 +158,47 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     // === 3. Next event estimation ===
     // ================================
 
-    if(directLighting) {
-        // 1. Ideal light
-        if(randomIdealLightSample.pdf > 0.0f){
-            glm::vec3 tl = randomIdealLightSample.p - hit.p;
-            float dl = glm::length(randomIdealLightSample.p - hit.p);
-            glm::vec3 wi = tl / dl;
-            if(!Occluded(hit.p, wi, hit.n, dl)){
-                float lightPdf = randomIdealLightSample.pdf * pLight;
-                if(lightPdf > 0.0f){
-                    float lightPower = glm::pow(lightPdf, beta);
+	// 1. Ideal light
+	if(randomIdealLightSample.pdf > 0.0f){
+		glm::vec3 tl = randomIdealLightSample.p - hit.p;
+		float dl = glm::length(randomIdealLightSample.p - hit.p);
+		glm::vec3 wi = tl / dl;
+		if(!Occluded(hit.p, wi, hit.n, dl)){
+			float lightPdf = randomIdealLightSample.pdf * pLight;
+			if(lightPdf > 0.0f){
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
+                float mis = 1.0f;
+                if (misEnabled) {
                     float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
                     float bxdfPower = glm::pow(bxdfPdf, beta);
-
-                    glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
-                    float mis = (lightPower / (lightPower + bxdfPower));
-                    directLight += throughput * mis * randomIdealLightSample.L * matColor / lightPdf;
-                }
-            }
-        }
-
-        // 2. Area light (assuming scaled point light lambertian emitter for now)
-        if(randomAreaLightSample.pdf > 0.0f){
-            glm::vec3 tl = randomAreaLightSample.p - hit.p;
-            float dl = glm::length(randomAreaLightSample.p - hit.p);
-            glm::vec3 wi = tl / dl;
-            if(!Occluded(hit.p, wi, hit.n, dl)){
-                float lightPdf = randomAreaLightSample.pdf * pLight;
-                if(lightPdf > 0.0f){
                     float lightPower = glm::pow(lightPdf, beta);
-                    float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
-                    float bxdfPower = glm::pow(bxdfPdf, beta);
-                    float mis = (lightPower / (lightPower + bxdfPower));
-                    glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
-                    directLight += throughput * mis * randomAreaLightSample.L * matColor / lightPdf;
+                    mis = lightPower / (lightPower + bxdfPower);
                 }
-            }
-        }
-    }
+                directLight += throughput * mis * randomIdealLightSample.L * matColor / lightPdf;
+			}
+		}
+	}
+
+	// 2. Area light (assuming scaled point light lambertian emitter for now)
+	if(randomAreaLightSample.pdf > 0.0f){
+		glm::vec3 tl = randomAreaLightSample.p - hit.p;
+		float dl = glm::length(randomAreaLightSample.p - hit.p);
+		glm::vec3 wi = tl / dl;
+		if(!Occluded(hit.p, wi, hit.n, dl)){
+			float lightPdf = randomAreaLightSample.pdf * pLight;
+			if(lightPdf > 0.0f){
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
+                float mis = 1.0f;
+                if(misEnabled) {
+					float lightPower = glm::pow(lightPdf, beta);
+					float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
+					float bxdfPower = glm::pow(bxdfPdf, beta);
+					mis = lightPower / (lightPower + bxdfPower);
+				}
+				directLight += throughput * mis * randomAreaLightSample.L * matColor / lightPdf;
+			}
+		}
+	}
     
     // ============================
     // === 4. Indirect lighting ===
@@ -214,9 +218,12 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         }
 
         depth++;
-        float lightPower = glm::pow(lightPdf, beta);
-        float bxdfPower = glm::pow(bxdfPdf, beta);
-        float mis = (bxdfPower / (lightPower + bxdfPower));
+        float mis = 1.0f;
+        if (misEnabled) {
+            float lightPower = glm::pow(lightPdf, beta);
+            float bxdfPower = glm::pow(bxdfPdf, beta);
+            mis = bxdfPower / (lightPower + bxdfPower);
+        }
         float cos = glm::max(0.0f, glm::dot(hit.n, matSample.d));
         glm::vec3 newThroughput = mis * throughput * cos * matSample.color / bxdfPdf;
         Ray bounceRay(hit.p + OCCLUDED_EPS * hit.n, matSample.d);
@@ -226,7 +233,6 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
     // Add contributions
     if(!indirectLighting) return directLight;
-    if(!directLighting) return indirectLight;
     color += directLight + indirectLight;
     return color;
 }

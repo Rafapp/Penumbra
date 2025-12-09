@@ -100,8 +100,9 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
         r->BeginRender();
     });
     renderer->SetGUI(gui.get());
-    viewportRenderWidth = gui->GetRenderWidth();
-    viewportRenderHeight = gui->GetRenderHeight();
+	auto rs = gui->GetRenderSettings();
+    viewportRenderWidth = rs.width;
+    viewportRenderHeight = rs.height;
     int fbw, fbh;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     width  = fbw;

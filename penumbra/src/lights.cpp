@@ -60,6 +60,10 @@ glm::vec3 PointLight::GetRadiance(const HitInfo& hit) {
     return intensity / (d * d);
 }
 
+glm::vec3 DiffuseAreaLight::GetRadiance(const HitInfo& hit, const Shape& shape) {
+    return radiance;
+}
+
 // === Sampling === 
 LightSample PointLight::Sample(const HitInfo& hit, Sampler& sampler) {
     LightSample sample;

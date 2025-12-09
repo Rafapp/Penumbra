@@ -72,10 +72,10 @@ void GUI::Render() {
             if (ImGui::CollapsingHeader("Resolution")) {
                 ImGui::Text("Render Width");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputInt("##RenderWidth", &renderWidth, 0, 0);
+                ImGui::InputInt("##RenderWidth", &renderSettings.width, 0, 0);
                 ImGui::Text("Render Height");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputInt("##RenderHeight", &renderHeight, 0, 0);
+                ImGui::InputInt("##RenderHeight", &renderSettings.height, 0, 0);
             }
 
             ImGui::Unindent(20.0f);
@@ -85,13 +85,14 @@ void GUI::Render() {
             if (ImGui::CollapsingHeader("Rendering")) {
                 ImGui::Text("Samples per Pixel");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::InputInt("##SamplesPerPixel", &spp, 0, 0);
-                ImGui::Text("Direct Lighting");
-                ImGui::SetNextItemWidth(150.0f);
-                ImGui::Checkbox("##Direct Lighting", &directLighting);
+                ImGui::InputInt("##1", &renderSettings.spp, 0, 0);
                 ImGui::Text("Indirect Lighting");
                 ImGui::SetNextItemWidth(150.0f);
-                ImGui::Checkbox("##Indirect Lighting", &indirectLighting);
+                ImGui::Checkbox("##2", &renderSettings.indirect);
+                ImGui::Text("MIS");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##3", &renderSettings.mis);
+
             }
             ImGui::Unindent(20.0f);
         }

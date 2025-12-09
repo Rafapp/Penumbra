@@ -7,6 +7,14 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+struct RenderSettings {
+    int width = 960;
+    int height = 540;
+    int spp = 1;
+    bool indirect = true;
+    bool mis = true;
+};
+
 class GUI {
 public:
     GUI();
@@ -23,21 +31,12 @@ public:
         renderCallback = callback;
     }
 
-    int GetRenderWidth() const { return renderWidth; }
-    int GetRenderHeight() const { return renderHeight; }
-    int GetSPP() const { return spp; }
-    bool GetDirectLighting() const { return directLighting; }
-    bool GetIndirectLighting() const { return indirectLighting; }
+    RenderSettings GetRenderSettings() { return renderSettings; }
 
 private:
     std::function<void()> renderCallback;
     GLFWwindow* m_window;
     ImFont* font;
-    int renderWidth = 960;
-    int renderHeight = 540;
-    bool directLighting = true;
-    bool indirectLighting = true;
-    int spp = 1;
-
+	RenderSettings renderSettings;
     void SetupImGuiStyle();
 };

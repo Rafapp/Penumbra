@@ -13,7 +13,7 @@ WorldBegin
 AttributeBegin
   Translate 0.0 0.0 18.0
   Scale 1.0 1.0 1.0
-  AreaLightSource "diffuse" "rgb L" [15 15 15]
+  AreaLightSource "diffuse" "rgb L" [150 150 150]
   Shape "sphere" "float radius" [1.0]
 AttributeEnd
 
@@ -47,7 +47,7 @@ AttributeEnd
 
 # Left
 AttributeBegin
-  Material "matte" "rgb Kd" [0.5 0.25 0.25]
+  Material "matte" "rgb Kd" [0.7 0.14 0.14]
   Translate -15.0 0.0 12.0
   Rotate 90 0 1 0
   Scale 64 64 64
@@ -56,7 +56,7 @@ AttributeEnd
 
 # Right
 AttributeBegin
-  Material "matte" "rgb Kd" [0.25 0.5 0.25]
+  Material "matte" "rgb Kd" [0.14 0.7 0.14]
   Translate 15.0 0.0 12.0
   Rotate -90 0 1 0
   Scale 64 64 64

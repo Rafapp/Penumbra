@@ -86,7 +86,7 @@ public:
 
     LightSample Sample(const HitInfo& hit, Renderer& renderer, Sampler& sampler, const Shape& shape) override;
     bool Visible(const HitInfo& hit, const Renderer& renderer) override;
-    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override { return radiance * 4.0f * float(M_PI); }
+    glm::vec3 GetRadiance(const HitInfo& hit, const Shape& shape) override;
     float GetSurfaceArea() const { return surfaceArea; }
     float Pdf(const HitInfo& hit, const Renderer& renderer, const glm::vec3& wi) const override;
 private:
