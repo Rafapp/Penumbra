@@ -162,4 +162,22 @@ echo %CYAN%%BOLD%╚════════════════════
 echo %GREEN%%BOLD%Ready to render!%NC%
 echo.
 
+REM ============================================================
+REM   RUN EXECUTABLE AFTER BUILD
+REM ============================================================
+echo %BLUE%%BOLD%Launching Penumbra...%NC%
+echo.
+
+set "RUN_DIR=%PROJECT_DIR%\build\%BUILD_TYPE%"
+set "EXE_PATH=%RUN_DIR%\penumbra.exe"
+
+if exist "!EXE_PATH!" (
+    echo %GREEN%Running: !EXE_PATH!%NC%
+    echo.
+    start "" /D "!RUN_DIR!" "penumbra.exe"
+) else (
+    echo %RED%✗ Could not find penumbra.exe in %BUILD_TYPE% folder.%NC%
+    echo Expected: !EXE_PATH!
+)
+
 endlocal
