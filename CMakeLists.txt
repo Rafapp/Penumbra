@@ -11,6 +11,13 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Enable parallel builds
+include(ProcessorCount)
+ProcessorCount(N)
+if(NOT N EQUAL 0)
+  set(CMAKE_BUILD_PARALLEL_LEVEL ${N})
+endif()
+
 # === Platform ===
 # Apple (homebrew)
 # TODO: Add other package managers

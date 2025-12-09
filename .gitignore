@@ -13,6 +13,9 @@ cmake_install.cmake
 # External libraries (FetchContent)
 libraries/
 
+# vcpkg
+buildscripts/vcpkg
+
 # Visual Studio files and folders
 .vs/
 *.vcxproj.user
