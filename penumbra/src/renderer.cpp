@@ -39,12 +39,17 @@ void Renderer::BeginRender() {
         std::cerr << "Failed to reload scene" << std::endl;
         return;
     }
+
     auto rs = gui->GetRenderSettings();
     renderWidth = rs.width;
     renderHeight = rs.height;
     spp = rs.spp;
     indirectLighting = rs.indirect;
     misEnabled = rs.mis;
+	gammaCorrect = rs.gammaCorrect;
+	tonemap = rs.tonemap;
+    exposureBias = rs.exposureBias;
+
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
 
@@ -212,9 +217,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         // Find area light PDF at sampled direction
         float lightPdf = 0.0f;
         if(idealLight){
-            lightPdf = idealLight->Pdf(hit, matSample.d);
+            lightPdf = idealLight->Pdf(hit, matSample.d) * pLight;
         } else if (areaLight){
-            lightPdf = areaLight->Pdf(hit, *this, matSample.d);
+            lightPdf = areaLight->Pdf(hit, *this, matSample.d) *  pLight;
         }
 
         depth++;
@@ -253,6 +258,10 @@ void Renderer::RenderPixel(int u, int v) {
 
     // Average over samples
     color /= float(spp);
+
+    // Gamma correct and tonemap
+    if(tonemap) Color::UnchartedTonemapFilmic(color, exposureBias);
+    if(gammaCorrect) Color::GammaCorrect(color);
     
     // Write to buffer
     int index = (v * renderWidth + u) * 3;

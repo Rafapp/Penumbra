@@ -8,11 +8,17 @@
 #include <iostream>
 
 struct RenderSettings {
+    // Rendering
     int width = 960;
     int height = 540;
     int spp = 1;
     bool indirect = true;
     bool mis = true;
+
+    // Color
+	bool gammaCorrect = true;
+	bool tonemap = true;
+	float exposureBias = 1.0f;
 };
 
 class GUI {

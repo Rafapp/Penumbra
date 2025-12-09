@@ -10,6 +10,7 @@
 #include "pbrtconverter.h"
 #include "sampling.h"
 #include "gui.h"
+#include "color.h"
 
 // TODO: Adaptive SPP
 // #define MIN_SPP 1 
@@ -48,13 +49,20 @@ private:
     std::unique_ptr<RenderThreadPool> threadPool;
 
 
-    // GUI Variables
+    // --- GUI Variables ---
+
+    // Rendering
     GUI* gui = nullptr;
-    bool indirectLighting = true;
+    bool indirectLighting;
     bool misEnabled;
-    int spp = -1;
-    int renderWidth = -1;
-    int renderHeight = -1;
+    int spp;
+    int renderWidth;
+    int renderHeight;
+
+    // Color
+    bool gammaCorrect;
+    bool tonemap;
+    float exposureBias;
 
     void ConvertPbrtScene();
 };

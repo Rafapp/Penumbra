@@ -78,9 +78,6 @@ void GUI::Render() {
                 ImGui::InputInt("##RenderHeight", &renderSettings.height, 0, 0);
             }
 
-            ImGui::Unindent(20.0f);
-
-            ImGui::Indent(20.0f);
             // Rendering 
             if (ImGui::CollapsingHeader("Rendering")) {
                 ImGui::Text("Samples per Pixel");
@@ -92,8 +89,21 @@ void GUI::Render() {
                 ImGui::Text("MIS");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::Checkbox("##3", &renderSettings.mis);
-
             }
+
+            // Color
+            if (ImGui::CollapsingHeader("Color")) {
+                ImGui::Text("Gamma Correction");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##4", &renderSettings.gammaCorrect);
+                ImGui::Text("Tonemapping");
+                ImGui::SetNextItemWidth(150.0f);
+				ImGui::Checkbox("##5", &renderSettings.tonemap);
+				ImGui::Text("Exposure Bias");
+				ImGui::SetNextItemWidth(150.0f);
+				ImGui::InputFloat("##ExposureBias", &renderSettings.exposureBias);
+            }
+
             ImGui::Unindent(20.0f);
         }
 
