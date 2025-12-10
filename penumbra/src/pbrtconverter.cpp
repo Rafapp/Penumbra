@@ -54,16 +54,21 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     }
 
     // Assign materials to shapes
-	int shapeIdx = 0;
+    int shapeIdx = 0;
     for (auto pbrtShape : pbrtScene->shapes) {
-        if (pbrtShape->material != minipbrt::kInvalidIndex) {
-			uint32_t idx = pbrtShape->material;
-            Material* material = scene.materials[idx];
-            if (material) {
-                scene.shapes[shapeIdx]->material = material;
-				shapeIdx++;
-            }
+        if (shapeIdx >= scene.shapes.size()) break;
+        int mi = pbrtShape->material;
+		std::cout << "shape at idx: " << shapeIdx << " has material idx: " << mi << std::endl;
+        if (mi == minipbrt::kInvalidIndex || mi >= (int)scene.materials.size()) {
+            shapeIdx++;
+            continue;
         }
+        Material* m = scene.materials[mi];
+        if(m->GetType() == minipbrt::MaterialType::Disney) {
+            std::cout << "Disney material detected" << std::endl;
+        }
+        if (m) scene.shapes[shapeIdx]->material = m;
+        shapeIdx++;
     }
 
     // Ideal lights
@@ -110,8 +115,12 @@ Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
     
     if (pbrtMat->type() == minipbrt::MaterialType::Matte) {
         material = new MatteMaterial(static_cast<minipbrt::MatteMaterial*>(pbrtMat));
+    } else if (pbrtMat->type() == minipbrt::MaterialType::Disney) {
+        material = new DisneyMaterial(static_cast<minipbrt::DisneyMaterial*>(pbrtMat));
+    } else {
+        std::cerr << "Unsupported material type" << std::endl;
     }
-    
+
     return material;
 }
 

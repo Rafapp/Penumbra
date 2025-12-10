@@ -8,6 +8,7 @@ MatteMaterial::MatteMaterial(minipbrt::MatteMaterial* pbrtMat) {
 
 DisneyMaterial::DisneyMaterial(minipbrt::DisneyMaterial* pbrtMat) {
     // TODO: Access texture params
+	std::cout << "Creating DisneyMaterial from PBRT material" << std::endl;
     if (!pbrtMat) return;
     type = pbrtMat->type();
     albedo = glm::vec3(pbrtMat->color.value[0], pbrtMat->color.value[1], pbrtMat->color.value[2]);

@@ -13,9 +13,18 @@ function(set_target_optimizations target)
   endif()
   
   if(ENABLE_OPTIMIZATIONS)
-    if(MSVC)
-      target_compile_options(${target} PRIVATE /O2 /Ob2)
-      message(STATUS "Optimizations enabled for ${target}: /O2 /Ob2")
+	if(MSVC)
+	  # ----------------------------------------------------------
+	  # Avoid /O2 in Debug builds: MSVC Debug uses /RTC1 which
+	  # *cannot* be combined with /O2, causing the conflict:
+	  #   '/O2' and '/RTC1' command-line options are incompatible
+	  # ----------------------------------------------------------
+	  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		message(STATUS "Skipping MSVC optimizations for ${target} (Debug build)")
+	  else()
+		target_compile_options(${target} PRIVATE /O2 /Ob2)
+		message(STATUS "Optimizations enabled for ${target}: /O2 /Ob2")
+	  endif()
     else()
       # Check if compiler supports these flags
       include(CheckCXXCompilerFlag)

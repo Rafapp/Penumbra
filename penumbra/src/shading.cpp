@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 
 #include "shading.h"
 #include "lights.h"
@@ -26,14 +26,17 @@ Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, const MatteMaterial
 }
 
 Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit, const DisneyMaterial* disney, const glm::vec3& d, Sampler& sampler) {
-    BxDFSample sample;
-    return sample;
+    // TODO: Full implementation
+    BxDFSample s;
+    s.d = sampler.SampleHemisphereCosine(hit.n);
+    float cosT = glm::max(0.f, glm::dot(hit.n, s.d));
+    s.pdf = cosT * M_PI;
+    s.color = (disney->albedo * M_PI) * cosT;
+    return s;
 }
 
 // === BxDF Shading ===
 glm::vec3 Shading::ShadeMaterial(const HitInfo& hit, const glm::vec3& wo, const glm::vec3& wi, const Material* material) {
-    if (!material) return glm::vec3(0.0f);
-    
     if (material->GetType() == minipbrt::MaterialType::Matte) {
         return ShadeMatte(hit, wo, wi, static_cast<const MatteMaterial*>(material));
     } else if (material->GetType() == minipbrt::MaterialType::Disney) {
@@ -72,17 +75,20 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit, const glm::vec3& wo, const gl
 // === BxDF PDF's ===
 float Shading::PdfMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* mat) {
     if (mat->GetType() == minipbrt::MaterialType::Matte) {
-        const MatteMaterial* matte = static_cast<const MatteMaterial*>(mat);
-        return PdfMatte(hit, matte, wi);
+        return PdfMatte(hit, static_cast<const MatteMaterial*>(mat), wi);
+    }
+    else if (mat->GetType() == minipbrt::MaterialType::Disney) {
+        return PdfDisney(hit, static_cast<const DisneyMaterial*>(mat), wi);
     }
     return 0.0f;
 }
 
 float Shading::PdfMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi) {
     float cosTheta = glm::max(0.0f, glm::dot(hit.n, wi));
-    return cosTheta / float(M_PI);
+    return cosTheta * M_1_PI;
 }
 
 float Shading::PdfDisney(const HitInfo& hit, const DisneyMaterial* disney, const glm::vec3& wi) {
-    return 0.0f;
+    float cosTheta = glm::max(0.0f, glm::dot(hit.n, wi));
+    return cosTheta * M_1_PI;
 }

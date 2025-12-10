@@ -131,7 +131,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     }
 
     Material* mat = hit.material;
-    if(!mat) throw std::runtime_error("Renderer::TracePath: Material at hit.material is null");
+	if (!mat) return glm::vec3(0.0f);
 
     // ==============================
     // === 2. Sample random light ===

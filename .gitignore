@@ -9,6 +9,7 @@ cmake_install.cmake
 *.ninja
 .ninja_deps
 .ninja_log
+build-msvc/
 
 # External libraries (FetchContent)
 libraries/
