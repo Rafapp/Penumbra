@@ -18,8 +18,16 @@ public:
     MatteMaterial(minipbrt::MatteMaterial* pbrtMat);
     ~MatteMaterial() = default;
     
-    glm::vec3 GetAlbedo() const { return albedo; }
-    
-private:
     glm::vec3 albedo;
+};
+
+class DisneyMaterial : public Material {
+public:
+    DisneyMaterial(minipbrt::DisneyMaterial* pbrtMat);
+    ~DisneyMaterial() = default;
+
+    glm::vec3 albedo;
+    float roughness;
+    float metallic;
+    float eta;
 };

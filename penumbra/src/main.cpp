@@ -35,7 +35,7 @@ int main() {
 
 	// Load PBRT scene
 	//std::string sceneFilename = "./resources/scenes/cornell.pbrt";
-	std::string sceneFilename = "./resources/scenes/veach.pbrt";
+	std::string sceneFilename = "./resources/scenes/cornell.pbrt";
 	Renderer renderer;
 	renderer.LoadScene(sceneFilename);
 	

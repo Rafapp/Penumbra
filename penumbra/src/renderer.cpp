@@ -168,10 +168,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		glm::vec3 tl = randomIdealLightSample.p - hit.p;
 		float dl = glm::length(randomIdealLightSample.p - hit.p);
 		glm::vec3 wi = tl / dl;
+		glm::vec3 wo = -ray.d;
 		if(!Occluded(hit.p, wi, hit.n, dl)){
 			float lightPdf = randomIdealLightSample.pdf * pLight;
 			if(lightPdf > 0.0f){
-				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wo, wi, mat);
                 float mis = 1.0f;
                 if (misEnabled) {
                     float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
@@ -189,10 +190,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		glm::vec3 tl = randomAreaLightSample.p - hit.p;
 		float dl = glm::length(randomAreaLightSample.p - hit.p);
 		glm::vec3 wi = tl / dl;
+		glm::vec3 wo = -ray.d;
 		if(!Occluded(hit.p, wi, hit.n, dl)){
 			float lightPdf = randomAreaLightSample.pdf * pLight;
 			if(lightPdf > 0.0f){
-				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, mat);
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wo, wi, mat);
                 float mis = 1.0f;
                 if(misEnabled) {
 					float lightPower = glm::pow(lightPdf, beta);

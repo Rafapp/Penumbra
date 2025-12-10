@@ -21,12 +21,38 @@ namespace Shading {
         float pdf;            // Probability of this sample
     };
 
-    BxDFSample SampleMaterial(const HitInfo& hit, const Material* material, const glm::vec3& wi, Sampler& sampler);
-    BxDFSample SampleMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi, Sampler& sampler);
+    // TODO: Create context struct for arguments, too many ...
+    BxDFSample SampleMaterial(const HitInfo& hit, 
+                              const Material* material, 
+                              const glm::vec3& wi, 
+                              Sampler& sampler);
 
-    glm::vec3 ShadeMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* material);
-    glm::vec3 ShadeMatte(const HitInfo& hit, const glm::vec3& wi, const MatteMaterial* matte);
+    BxDFSample SampleMatte(const HitInfo& hit, 
+                           const MatteMaterial* matte, 
+                           const glm::vec3& wi, 
+                           Sampler& sampler);
+
+	BxDFSample SampleDisney(const HitInfo& hit, 
+                            const DisneyMaterial* disney, 
+                            const glm::vec3& wi, 
+                            Sampler& sampler);
+
+    glm::vec3 ShadeMaterial(const HitInfo& hit, 
+                            const glm::vec3& wo,
+                            const glm::vec3& wi, 
+                            const Material* material);
+
+    glm::vec3 ShadeMatte(const HitInfo& hit, 
+                         const glm::vec3& wo, 
+                         const glm::vec3& wi,
+                         const MatteMaterial* matte);
+
+    glm::vec3 ShadeDisney(const HitInfo& hit, 
+                          const glm::vec3& wo, 
+                          const glm::vec3& wi, 
+                          const DisneyMaterial* disney);
 
     float PdfMaterial(const HitInfo& hit, const glm::vec3& wi, const Material* mat);
     float PdfMatte(const HitInfo& hit, const MatteMaterial* matte, const glm::vec3& wi);
+	float PdfDisney(const HitInfo& hit, const DisneyMaterial* disney, const glm::vec3& wi);
 }

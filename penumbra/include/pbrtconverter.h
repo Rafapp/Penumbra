@@ -19,7 +19,6 @@ namespace PbrtConverter {
     IdealLight* ConvertIdealLight(minipbrt::Light* pbrtLight);
     AreaLight* ConvertAreaLight(minipbrt::AreaLight* pbrtAreaLight);
     Material* ConvertMaterial(minipbrt::Material* pbrtMat);
-    TriangleMesh* ConvertTriangleMesh(minipbrt::TriangleMesh* pbrtMesh);
 
     glm::mat4 TransformToMat4(const minipbrt::Transform& transform);
 }

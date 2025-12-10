@@ -22,7 +22,8 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     // Materials (first)
     for (auto pbrtMat : pbrtScene->materials) {
         Material* material = ConvertMaterial(pbrtMat);
-        if (material) scene.materials.push_back(material);
+		scene.materials.push_back(material); 
+		std::cout << "Converted material, total: " << scene.materials.size() << std::endl;
     }
 
     // Area Lights (second)
@@ -49,14 +50,18 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
                     throw std::runtime_error("Area light index " + std::to_string(lightIdx) + " not found for shape.");
                 }
             }
-            uint32_t matIdx = pbrtShape->material;
-            if (matIdx != minipbrt::kInvalidIndex) {
-                Material* material = scene.materials[matIdx];
-                if (material) {
-                    shape->material = material;
-                } else {
-                    throw std::runtime_error("Material index " + std::to_string(matIdx) + " not found for shape.");
-                }
+		}
+    }
+
+    // Assign materials to shapes
+	int shapeIdx = 0;
+    for (auto pbrtShape : pbrtScene->shapes) {
+        if (pbrtShape->material != minipbrt::kInvalidIndex) {
+			uint32_t idx = pbrtShape->material;
+            Material* material = scene.materials[idx];
+            if (material) {
+                scene.shapes[shapeIdx]->material = material;
+				shapeIdx++;
             }
         }
     }

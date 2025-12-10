@@ -50,6 +50,7 @@ if /i "%~1"=="--headless" (
 
 if /i "%~1"=="--debug" (
     set "BUILD_TYPE=Debug"
+	set "OPTIMIZED=OFF"
     shift
     goto parse_args
 )
