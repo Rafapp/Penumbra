@@ -19,24 +19,27 @@
 // TODO: Do we need a namespace or should we have a class?
 namespace Shading {
     struct BxDFSample {
-        glm::vec3 d;  // Outgoing direction
-        glm::vec3 color;      // f(wi, wo) * cos(theta)
-        float pdf;            // Probability of this sample
+        glm::vec3 wo = glm::vec3(0.0f);     // Outgoing direction
+        glm::vec3 color = glm::vec3(0.0f);  // f(wi, wo) * cos(theta)
+        float pdf = 0.0f;                   // Probability of this sample
     };
 
     // TODO: Create context struct for arguments, too many ...
     BxDFSample SampleMaterial(const HitInfo& hit, 
                               const Material* material, 
+							  const glm::vec3& wo,
                               const glm::vec3& wi, 
                               Sampler& sampler);
 
     BxDFSample SampleMatte(const HitInfo& hit, 
                            const MatteMaterial* matte, 
+						   const glm::vec3& wo,
                            const glm::vec3& wi, 
                            Sampler& sampler);
 
 	BxDFSample SampleDisney(const HitInfo& hit, 
                             const DisneyMaterial* disney, 
+                            const glm::vec3& wo,
                             const glm::vec3& wi, 
                             Sampler& sampler);
 

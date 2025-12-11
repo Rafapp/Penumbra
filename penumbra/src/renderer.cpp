@@ -212,16 +212,21 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     // ============================
 
     if(indirectLighting) {
+        glm::vec3 tl = randomAreaLightSample.p - hit.p;
+        float dl = glm::length(randomAreaLightSample.p - hit.p);
+        glm::vec3 wi = tl / dl;
+        glm::vec3 wo = -ray.d;
+
         // Sample BxDF for new direction
-        Shading::BxDFSample matSample = Shading::SampleMaterial(hit, mat, -ray.d, sampler);
+        Shading::BxDFSample matSample = Shading::SampleMaterial(hit, mat, wo, wi, sampler);
         float bxdfPdf = matSample.pdf;
 
-        // Find area light PDF at sampled direction
+        // Find light's PDF at sampled direction
         float lightPdf = 0.0f;
         if(idealLight){
-            lightPdf = idealLight->Pdf(hit, matSample.d) * pLight;
+            lightPdf = idealLight->Pdf(hit, matSample.wo) * pLight;
         } else if (areaLight){
-            lightPdf = areaLight->Pdf(hit, *this, matSample.d) *  pLight;
+            lightPdf = areaLight->Pdf(hit, *this, matSample.wo) *  pLight;
         }
 
         depth++;
@@ -231,9 +236,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
             float bxdfPower = glm::pow(bxdfPdf, beta);
             mis = bxdfPower / (lightPower + bxdfPower);
         }
-        float cos = glm::max(0.0f, glm::dot(hit.n, matSample.d));
+        float cos = glm::max(0.0f, glm::dot(hit.n, matSample.wo));
         glm::vec3 newThroughput = mis * throughput * cos * matSample.color / bxdfPdf;
-        Ray bounceRay(hit.p + OCCLUDED_EPS * hit.n, matSample.d);
+        Ray bounceRay(hit.p + OCCLUDED_EPS * hit.n, matSample.wo);
         glm::vec3 Li = TracePath(bounceRay, sampler, depth, newThroughput);
         indirectLight += Li;
     }
