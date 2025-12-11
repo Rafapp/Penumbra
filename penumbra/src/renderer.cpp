@@ -172,10 +172,10 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		if(!Occluded(hit.p, wi, hit.n, dl)){
 			float lightPdf = randomIdealLightSample.pdf * pLight;
 			if(lightPdf > 0.0f){
-				glm::vec3 matColor = Shading::ShadeMaterial(hit, wo, wi, mat);
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, wo, mat);
                 float mis = 1.0f;
                 if (misEnabled) {
-                    float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
+                    float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
                     float bxdfPower = glm::pow(bxdfPdf, beta);
                     float lightPower = glm::pow(lightPdf, beta);
                     mis = lightPower / (lightPower + bxdfPower);
@@ -194,11 +194,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		if(!Occluded(hit.p, wi, hit.n, dl)){
 			float lightPdf = randomAreaLightSample.pdf * pLight;
 			if(lightPdf > 0.0f){
-				glm::vec3 matColor = Shading::ShadeMaterial(hit, wo, wi, mat);
+				glm::vec3 matColor = Shading::ShadeMaterial(hit, wi, wo, mat);
                 float mis = 1.0f;
                 if(misEnabled) {
 					float lightPower = glm::pow(lightPdf, beta);
-					float bxdfPdf = Shading::PdfMaterial(hit, wi, mat);
+					float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
 					float bxdfPower = glm::pow(bxdfPdf, beta);
 					mis = lightPower / (lightPower + bxdfPower);
 				}
@@ -218,7 +218,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         glm::vec3 wo = -ray.d;
 
         // Sample BxDF for new direction
-        Shading::BxDFSample matSample = Shading::SampleMaterial(hit, mat, wo, wi, sampler);
+        Shading::BxDFSample matSample = Shading::SampleMaterial(hit, wi, wo, mat, sampler);
         float bxdfPdf = matSample.pdf;
 
         // Find light's PDF at sampled direction

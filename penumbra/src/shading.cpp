@@ -10,9 +10,9 @@ inline float ShlickFresnel(float cos, float eta) {
     return Fo + (1.0f - Fo) * glm::pow(1.0f - cos, 5.0f);
 }
 
-inline float GGX(float r, glm::vec3 h, glm::vec3 n) {
+inline float GGX(float r, glm::vec3 h, glm::vec3 v) {
     float r2 = r * r;
-    float cos = glm::dot(h, n);
+    float cos = glm::dot(h, v);
     float base = glm::pow(cos, 2) * (r2 - 1.0f) + 1.0f;
     float D = r2 / (M_PI * glm::pow(base, 2));
     return D;
@@ -21,27 +21,27 @@ inline float GGX(float r, glm::vec3 h, glm::vec3 n) {
 
 // === BxDF Sampling ===    
 Shading::BxDFSample Shading::SampleMaterial(const HitInfo& hit, 
-                                            const Material* material, 
-                                            const glm::vec3& wo, 
                                             const glm::vec3& wi, 
+                                            const glm::vec3& wo, 
+                                            const Material* material, 
                                             Sampler& sampler) {
 
     if (material->GetType() == minipbrt::MaterialType::Matte) {
         auto matte = static_cast<const MatteMaterial*>(material);
-        return SampleMatte(hit, matte, wo, wi, sampler);
+        return SampleMatte(hit, wo, wi, matte, sampler);
     }
 	else if (material->GetType() == minipbrt::MaterialType::Disney) {
         auto disney = static_cast<const DisneyMaterial*>(material);
-        return SampleDisney(hit, disney, wo, wi, sampler);
+        return SampleDisney(hit, wi, wo, disney, sampler);
     }
     // Add other material types
     return {};
 }
 
 Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit, 
-                                         const MatteMaterial* matte, 
-                                         const glm::vec3& wo, 
                                          const glm::vec3& wi, 
+                                         const glm::vec3& wo, 
+                                         const MatteMaterial* matte, 
                                          Sampler& sampler){
 
     BxDFSample sample;
@@ -54,9 +54,9 @@ Shading::BxDFSample Shading::SampleMatte(const HitInfo& hit,
 // "Physically-Based Shading at Disney," Brent Burley (2012)
 // "Extending the Disney BRDF to a BSDF with Integrated Subsurface Scattering," Brent Burley (2015)
 Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit, 
-                                          const DisneyMaterial* disney, 
-                                          const glm::vec3& wo, 
                                           const glm::vec3& wi, 
+                                          const glm::vec3& wo, 
+                                          const DisneyMaterial* disney, 
                                           Sampler& sampler) {
     BxDFSample sample;
 
@@ -65,10 +65,10 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     float r2 = r * r;
 	glm::vec3 n = hit.front ? hit.n : -hit.n;
     glm::vec3 h = sampler.SampleHemisphereGGX(n, r);
-	float hDotWi = glm::max(0.0f, glm::dot(h, wi));
+	float hDotWi = glm::max(0.0f, glm::dot(h, wi)); // TODO: Need wi?
 	float hDotWo = glm::max(0.0f, glm::dot(h, wo));
 
-    // GGX Reflection ray
+    // Ignore backface reflections
 	glm::vec3 dReflect = glm::reflect(wo, h);
     if (glm::dot(dReflect, n) <= 0.0f) {
         sample.pdf = 0.0f;
@@ -82,9 +82,8 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
         float pReflect = pGGX * hDotWi / (4.0f * hDotWo);
 
         // Reflection weight
-        glm::vec3 fBrdf = ShadeDisney(hit, n, dReflect, disney);
+        glm::vec3 fBrdf = ShadeDisney(hit, wo, dReflect, disney);
         glm::vec3 color = fBrdf / pReflect;
-
 
         sample.wo = dReflect;
         sample.color = color;
@@ -99,7 +98,6 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
         float eta = hit.front ? 1.0f / disney->eta : disney->eta;
         float F = ShlickFresnel(hDotWo, eta);
 	    float nDotH = glm::max(0.0f, glm::dot(n, h));
-        float nDotWi = glm::max(0.0f, glm::dot(n, wi));
         float nDotWo = glm::max(0.0f, glm::dot(n, wo));
 
         // Decide response based on Fresnel 
@@ -109,7 +107,7 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
         if (x < F) {
 
             // Reflection probability 
-            float GGXreflect = GGX(r, h, h);
+            float GGXreflect = GGX(r, h, n);
             float pReflect = GGXreflect * hDotWi / (4.0f * hDotWo);
 
             // Reflection weight
@@ -129,9 +127,18 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
 
             // Case 1: Total internal reflection
             if (glm::length(dRefract) == 0.0f) {
+
+                // Reflection probability 
+                float GGXreflect = GGX(r, h, n);
+                float pReflect = GGXreflect * hDotWi / (4.0f * hDotWo * eta * eta);
+
+                // Reflection weight
+                glm::vec3 fBrdf = ShadeDisney(hit, wo, dReflect, disney);
+                glm::vec3 color = fBrdf * F / pReflect;
+
                 glm::vec3 dReflect = glm::reflect(wo, n);
-                sample.color = disney->albedo;
-                sample.pdf = 1.0f;
+                sample.color = color;
+                sample.pdf = pReflect;
                 sample.wo = dReflect;
                 return sample;
             }
@@ -161,8 +168,8 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
 
 // === BxDF Shading ===
 glm::vec3 Shading::ShadeMaterial(const HitInfo& hit, 
-                                 const glm::vec3& wo, 
                                  const glm::vec3& wi, 
+                                 const glm::vec3& wo, 
                                  const Material* material) {
 
     if (material->GetType() == minipbrt::MaterialType::Matte) {
@@ -175,8 +182,8 @@ glm::vec3 Shading::ShadeMaterial(const HitInfo& hit,
 }
 
 glm::vec3 Shading::ShadeMatte(const HitInfo& hit, 
-                              const glm::vec3& wo, 
                               const glm::vec3& wi, 
+                              const glm::vec3& wo, 
                               const MatteMaterial* matte) {
 
     return glm::max(0.0f, glm::dot(hit.n, wi)) * matte->albedo / M_PI;
@@ -186,8 +193,8 @@ glm::vec3 Shading::ShadeMatte(const HitInfo& hit,
 // "Extending the Disney BRDF to a BSDF with Integrated Subsurface Scattering," Brent Burley (2015)
 // TODO: Sampler may not be needed
 glm::vec3 Shading::ShadeDisney(const HitInfo& hit, 
-                               const glm::vec3& wo, 
                                const glm::vec3& wi, 
+                               const glm::vec3& wo, 
                                const DisneyMaterial* disney) {
 
     // Variables
@@ -222,29 +229,39 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
 // === BxDF PDF's ===
 float Shading::PdfMaterial(const HitInfo& hit, 
                            const glm::vec3& wi, 
-                           const Material* mat) {
+                           const glm::vec3& wo,
+                           const Material* mat,
+                           Sampler& sampler) {
 
     if (mat->GetType() == minipbrt::MaterialType::Matte) {
-        return PdfMatte(hit, static_cast<const MatteMaterial*>(mat), wi);
+        return PdfMatte(hit, wi, wo, static_cast<const MatteMaterial*>(mat), sampler);
     }
     else if (mat->GetType() == minipbrt::MaterialType::Disney) {
-        return PdfDisney(hit, static_cast<const DisneyMaterial*>(mat), wi);
+        return PdfDisney(hit, wi, wo, static_cast<const DisneyMaterial*>(mat), sampler);
     }
     return 0.0f;
 }
 
 float Shading::PdfMatte(const HitInfo& hit, 
-                        const MatteMaterial* matte, 
-                        const glm::vec3& wi) {
+                        const glm::vec3& wi,
+                        const glm::vec3& wo, 
+                        const MatteMaterial* matte,
+                        Sampler& sampler) {
 
     float cosTheta = glm::max(0.0f, glm::dot(hit.n, wi));
     return cosTheta * M_1_PI;
 }
 
 float Shading::PdfDisney(const HitInfo& hit, 
-                         const DisneyMaterial* disney, 
-                         const glm::vec3& wi) {
-
-    float cosTheta = glm::max(0.0f, glm::dot(hit.n, wi));
-    return cosTheta * M_1_PI;
+                         const glm::vec3& wi,
+                         const glm::vec3& wo, 
+                         const DisneyMaterial* disney,
+                         Sampler& sampler) {
+	float r = disney->roughness;
+	//glm::vec3 h = sampler.SampleHemisphereGGX(hit.n, r);
+	glm::vec3 h = glm::normalize(wi + wo);
+    float D = GGX(r, h, hit.n);
+	float hDotWi = glm::max(0.0f, glm::dot(h, wi));
+	float hDotWo = glm::max(0.0f, glm::dot(h, wo));
+    return D * hDotWi / (4.0f * hDotWo);
 }

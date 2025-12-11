@@ -53,11 +53,11 @@ private:
 
     // Rendering
     GUI* gui = nullptr;
-    bool indirectLighting;
-    bool misEnabled;
-    int spp;
-    int renderWidth;
-    int renderHeight;
+    bool indirectLighting = false;
+    bool misEnabled = false;
+    int spp = -1;
+    int renderWidth = -1;
+    int renderHeight = -1;
 
     // Color
     bool gammaCorrect;
