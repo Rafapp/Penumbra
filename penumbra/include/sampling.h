@@ -1,10 +1,20 @@
 #pragma once
+#pragma once
 
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include <glm/glm.hpp>
+#ifndef M_PI 
+#define M_PI 3.14159274101257324219f
+#endif
+#ifndef M_1_PI
+#define M_1_PI 0.31830987334251403809f
+#endif
+
 #include <random>
+#include <iostream>
+
+#include <glm/glm.hpp>
 
 #include "utils.h"
 

@@ -7,5 +7,6 @@ void Utils::Orthonormals(const glm::vec3& n, glm::vec3& b1, glm::vec3& b2) {
     else {
         b1 = glm::normalize(glm::vec3(0.0f, -n.z, n.y));
     }
-    b2 = glm::cross(n, b1);
+    b2 = glm::normalize(glm::cross(n, b1));
+	b1 = glm::normalize(glm::cross(b2, n)); // Enforce right handedness
 }

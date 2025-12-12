@@ -67,7 +67,8 @@ AttributeEnd
 
 #Center
 AttributeBegin
-  Material "disney" "color color" [0.14 0.7 0.14] "float metallic" [1.0] "float roughness" [0.0]
+  Material "disney" "color color" [0.14 0.7 0.14] "float metallic" [0.0] "float roughness" [0.0] "float eta" [1.5]
+  #Material "matte" "rgb Kd" [0.14 0.7 0.14]  
   Translate 0.0 4.0 6.0
   Scale 6.0 6.0 6.0
   Shape "sphere"

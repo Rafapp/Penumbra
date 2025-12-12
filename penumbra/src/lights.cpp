@@ -100,17 +100,11 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
         glm::vec3 dLocal = glm::vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
         // Create orthonormal basis for hitpoint. TODO: Utility function for this
-        glm::vec3 N = wi; 
-        glm::vec3 T, B;
-        if (fabs(N.x) > fabs(N.z)) {
-            T = glm::normalize(glm::vec3(-N.y, N.x, 0.0f));
-        } else {
-            T = glm::normalize(glm::vec3(0.0f, -N.z, N.y));
-        }
-        B = glm::cross(N, T);
+        glm::vec3 b1, b2;
+		Utils::Orthonormals(wi, b1, b2);
 
         // Find point and normal in sphere using sampled direction
-        glm::vec3 dWorld = dLocal.x * T + dLocal.y * B + dLocal.z * N;
+        glm::vec3 dWorld = dLocal.x * b1 + dLocal.y * b2 + dLocal.z * wi;
         Ray lightRay(hit.p + OCCLUDED_EPS * hit.n, dWorld);
         HitInfo lightHit;
         renderer.TraceRay(lightRay, lightHit);
@@ -118,6 +112,7 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
             sample.p = lightHit.p;
             sample.n = normalize(sample.p - p);
             sample.L = glm::vec3(0.0f);
+            sample.weight = glm::vec3(0.0f);
             sample.pdf = 0.0f;
             return sample;
         }
@@ -126,8 +121,10 @@ LightSample DiffuseAreaLight::Sample(const HitInfo& hit, Renderer& renderer, Sam
 
         // Compute PDF: 1 / visible hemisphere cap
         float cos = glm::sqrt(1.0f - (r2 / d2));
-        sample.pdf = 1.0f / (2.0f *M_PI * (1.0f - cos));
+        sample.pdf = 1.0f / (2.0f * M_PI * (1.0f - cos));
 
+        // Compute weight, 1 / pdf
+		sample.weight = glm::vec3(1.0f / sample.pdf);
         sample.L = GetRadiance(hit, shape); 
         return sample;
     }

@@ -1,6 +1,5 @@
 #include "sampling.h"
 
-
 Sampler::Sampler(uint32_t seed) {
     generator.seed(seed);
 }
@@ -115,11 +114,24 @@ glm::vec3 Sampler::SampleHemisphereCosine(const glm::vec3& n) {
 
 glm::vec3 Sampler::SampleHemisphereGGX(const glm::vec3& n, float r) {
     float x1 = Sample1D();
-	float x2 = Sample1D();
-	float theta = atan(r * sqrt(x1) / sqrt(1.0f - x1));
-	float phi = 2.0f * M_PI * x2;
-	glm::vec3 dLocal = glm::vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    float x2 = Sample1D();
+
+    float a2 = r * r;
+    float denom = (1.0f - x1) + a2 * x1;
+    float cosTheta = sqrt((1.0f - x1) / denom);
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    float phi = 2.0f * M_PI * x2;
+
+    glm::vec3 hLocal(
+        sinTheta * glm::cos(phi),
+        sinTheta * glm::cos(phi),
+        cosTheta
+    );
+    
+    glm::vec3 dLocal = glm::vec3(sinTheta * glm::cos(phi), 
+                                 sinTheta * glm::sin(phi), 
+                                 cosTheta);
     glm::vec3 b1, b2;
 	Utils::Orthonormals(n, b1, b2);
-	return dLocal.x * b1 + dLocal.y * b2 + dLocal.z * n;
+	return glm::normalize(dLocal.x * b1 + dLocal.y * b2 + dLocal.z * n);
 }

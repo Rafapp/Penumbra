@@ -16,10 +16,11 @@ class Renderer;
 class Sampler;
 
 struct LightSample{
-    glm::vec3 p;
-    glm::vec3 n;
-    glm::vec3 L;
-    float pdf;
+	glm::vec3 p; // Position of light sample point
+	glm::vec3 n; // Normal at light sample point
+    glm::vec3 L; // Radiance
+	glm::vec3 weight; // 1.0f / pdf
+	float pdf;
 };
 
 // TODO: Polymorphism might not be ideal

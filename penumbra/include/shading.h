@@ -20,26 +20,23 @@
 namespace Shading {
     struct BxDFSample {
         glm::vec3 wo = glm::vec3(0.0f);     // Outgoing direction
-        glm::vec3 color = glm::vec3(0.0f);  // f(wi, wo) * cos(theta)
+        glm::vec3 weight = glm::vec3(0.0f);  // BxDF(hit, wi, wo, mat);
         float pdf = 0.0f;                   // Probability of this sample
     };
 
     // TODO: Create context struct for arguments, too many ...
     BxDFSample SampleMaterial(const HitInfo& hit, 
                               const glm::vec3& wi, 
-							  const glm::vec3& wo,
                               const Material* material, 
                               Sampler& sampler);
 
     BxDFSample SampleMatte(const HitInfo& hit, 
                            const glm::vec3& wi, 
-						   const glm::vec3& wo,
                            const MatteMaterial* matte, 
                            Sampler& sampler);
 
     BxDFSample SampleDisney(const HitInfo& hit, 
                             const glm::vec3& wi, 
-                            const glm::vec3& wo,
                             const DisneyMaterial* disney, 
                             Sampler& sampler);
 
