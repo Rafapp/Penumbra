@@ -22,6 +22,7 @@ namespace Shading {
         glm::vec3 wo = glm::vec3(0.0f);     // Outgoing direction
         glm::vec3 weight = glm::vec3(0.0f);  // BxDF(hit, wi, wo, mat);
         float pdf = 0.0f;                   // Probability of this sample
+        bool isDelta = false;
     };
 
     // TODO: Create context struct for arguments, too many ...

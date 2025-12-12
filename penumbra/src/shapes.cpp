@@ -99,7 +99,7 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             float tWorld = t * s;
             hit.t = tWorld;
 
-            hit.front = glm::dot(hit.n, -r.d) > 0.0f;
+            hit.front = glm::dot(nObj, -r.d) > 0.0f;
             hit.materialId = materialId;
             hit.areaLightId = areaLightId;
             hit.shape = this;

@@ -169,19 +169,23 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		float dl = glm::length(randomIdealLightSample.p - hit.p);
 		glm::vec3 wi = tl / dl;
 		glm::vec3 wo = -ray.d;
-		if(!Occluded(hit.p, wi, hit.n, dl)){
+		glm::vec3 n = hit.front ? hit.n : -hit.n;
+		if(!Occluded(hit.p, wi, n, dl)){
 			float lightPdf = randomIdealLightSample.pdf * pLight;
 			if(lightPdf > 0.0f){
+                // TODO: Proper delta check
+				float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
                 float mis = 1.0f;
-                if (misEnabled) {
-                    float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
-                    float bxdfPower = glm::pow(bxdfPdf, beta);
-                    float lightPower = glm::pow(lightPdf, beta);
-                    mis = lightPower / (lightPower + bxdfPower);
+                if (bxdfPdf > 0.0f) {
+                    if (misEnabled) {
+                        float bxdfPower = glm::pow(bxdfPdf, beta);
+                        float lightPower = glm::pow(lightPdf, beta);
+                        mis = lightPower / (lightPower + bxdfPower);
+                    }
+                    // Evaluate rendering equation
+                    glm::vec3 fbrdf = Shading::ShadeMaterial(hit, wi, wo, mat);
+                    directLight += mis * throughput * randomIdealLightSample.L * fbrdf * randomIdealLightSample.weight;
                 }
-                // Evaluate rendering equation
-				glm::vec3 fbrdf = Shading::ShadeMaterial(hit, wi, wo, mat);
-                directLight += mis * throughput * randomIdealLightSample.L * fbrdf * randomIdealLightSample.weight;
 			}
 		}
 	}
@@ -192,19 +196,23 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 		float dl = glm::length(randomAreaLightSample.p - hit.p);
 		glm::vec3 wi = tl / dl;
 		glm::vec3 wo = -ray.d;
-		if(!Occluded(hit.p, wi, hit.n, dl)){
+		glm::vec3 n = hit.front ? hit.n : -hit.n;
+		if(!Occluded(hit.p, wi, n, dl)){
 			float lightPdf = randomAreaLightSample.pdf * pLight;
             if (lightPdf > 0.0f) {
+                // TODO: Proper delta check
+				float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
                 float mis = 1.0f;
-                if (misEnabled) {
-                    float lightPower = glm::pow(lightPdf, beta);
-                    float bxdfPdf = Shading::PdfMaterial(hit, wi, wo, mat, sampler);
-                    float bxdfPower = glm::pow(bxdfPdf, beta);
-                    mis = lightPower / (lightPower + bxdfPower);
+                if (bxdfPdf > 0.0f) {
+                    if (misEnabled) {
+                        float lightPower = glm::pow(lightPdf, beta);
+                        float bxdfPower = glm::pow(bxdfPdf, beta);
+                        mis = lightPower / (lightPower + bxdfPower);
+                    }
+                    // Evaluate rendering equation
+                    glm::vec3 fbrdf = Shading::ShadeMaterial(hit, wi, wo, mat);
+                    directLight += mis * throughput * randomAreaLightSample.L * fbrdf * randomAreaLightSample.weight;
                 }
-				// Evaluate rendering equation
-                glm::vec3 fbrdf = Shading::ShadeMaterial(hit, wi, wo, mat);
-                directLight += mis * throughput * randomAreaLightSample.L * fbrdf * randomAreaLightSample.weight;
             }
 		}
 	}
@@ -214,17 +222,12 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     // ===========================================
 
     if(indirectLighting) {
-        glm::vec3 tl = randomAreaLightSample.p - hit.p;
-        float dl = glm::length(randomAreaLightSample.p - hit.p);
-        glm::vec3 wi = tl / dl;
-        glm::vec3 rd = -ray.d;
 
         // Sample BxDF for new direction
+        glm::vec3 rd = -ray.d;
         Shading::BxDFSample matSample = Shading::SampleMaterial(hit, rd, mat, sampler);
         float bxdfPdf = matSample.pdf;
-
-        // Reject invalid sampled directions
-        if (bxdfPdf <= 0.0f) return directLight;
+        if (bxdfPdf <= 0.0f) return glm::vec3(0.0f); // Invalid path, terminate 
 
         // Find light's PDF at sampled direction
         float lightPdf = 0.0f;
@@ -237,19 +240,20 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         depth++;
         float mis = 1.0f;
         if (misEnabled) {
-            float lightPower = glm::pow(lightPdf, beta);
-            float bxdfPower = glm::pow(bxdfPdf, beta);
-            mis = bxdfPower / (lightPower + bxdfPower);
+            if (lightPdf == 0.0f) mis = 1.0f; // Ignore delta events
+            else {
+                float lightPower = glm::pow(lightPdf, beta);
+                float bxdfPower = glm::pow(bxdfPdf, beta);
+                mis = bxdfPower / (lightPower + bxdfPower);
+            }
         }
 
 		// Evaluate rendering equation recursively
-        // TODO: Eval burley diffuse here, or in SampleMaterial with (wi)?
-        //float cos = glm::max(0.0f, glm::dot(hit.n, matSample.wo));
-        //glm::vec3 newThroughput = mis * throughput * cos * fbrdf * matSample.weight;
-
-		glm::vec3 fbrdf = Shading::ShadeMaterial(hit, -ray.d, matSample.wo, mat);
-        glm::vec3 newThroughput = mis * throughput * fbrdf * matSample.weight;
-        Ray bounceRay(hit.p + OCCLUDED_EPS * hit.n, matSample.wo);
+		glm::vec3 f = matSample.isDelta ? glm::vec3(1.0f) : Shading::ShadeMaterial(hit, -ray.d, matSample.wo, mat);
+        glm::vec3 newThroughput = mis * throughput * f * matSample.weight;
+		glm::vec3 n = hit.front ? hit.n : -hit.n;
+        glm::vec3 offN = (glm::dot(matSample.wo, n) > 0.0f) ? n : -n;
+        Ray bounceRay(hit.p + OCCLUDED_EPS * offN, matSample.wo);
         glm::vec3 Li = TracePath(bounceRay, sampler, depth, newThroughput);
         indirectLight += Li;
     }

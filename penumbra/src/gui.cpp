@@ -60,6 +60,13 @@ void GUI::Render() {
             }
         }
 
+        // Save button
+        if (ImGui::Button("Render", ImVec2(panelWidth, 40.0f))) {
+            if (renderCallback) {
+                renderCallback();
+            }
+        }
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();

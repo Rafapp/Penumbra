@@ -57,140 +57,150 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
                                           const DisneyMaterial* disney, 
                                           Sampler& sampler) {
     BxDFSample sample;
+    const float EPS = 1e-4f;
+	const float NEPS = 1.0f - EPS;
 
-    // Variables
-    //float r = glm::max(0.05f, disney->roughness);
     float r = disney->roughness;
     float r2 = r * r;
 	glm::vec3 n = hit.front ? hit.n : -hit.n;
-	glm::vec3 h = glm::vec3(0.0f);
-	float hDotWi = -1.0f;
+    glm::vec3 I = -wi;
+	float eta = hit.front ? 1.0f / disney->eta : disney->eta;
+	float eta2 = eta * eta;
 
-    // Guarantee GGX sample in visible hemisphere
-    // TODO: Implement Heiz VNDF
-	int maxTrials = 10;
-    int trials = 0;
-    do {
-		h = sampler.SampleHemisphereGGX(n, r);
-        hDotWi = glm::dot(h, wi);
-	} while (hDotWi < 0.0f && ++trials < maxTrials);
-
-    if(hDotWi <= 0.0f) {
-        sample.pdf = 0;
-        return sample;
-    }
-
-	float hDotN = glm::dot(h, n);
-	glm::vec3 dReflect = glm::reflect(wi, h);
-	float hDotDr = glm::abs(glm::dot(h, dReflect)); // Account for reflection precision
-
-    // A) === Pure metallic: Reflection === 
-    if (disney->metallic >= 0.99f) {
-        // Reflection probability 
-        float D = DGGX(r, h, n);
-        float pReflect = D * hDotN / (4.0f * hDotDr);
-
-        // Reject grazing angles
-		if (pReflect <= 0.0f) {
-            sample.pdf = 0.0f;
-            return sample;
-		}
-
-        // Reflection weight
-        glm::vec3 weight = glm::vec3(1.0f / pReflect);
-
-        sample.wo = dReflect;
-        sample.weight = weight;
-        sample.pdf = pReflect;
-        return sample;
-    }
-
-    // B) === Dielectric: Diffuse or specular response  ===
-    else {
-
-        // --- I. DIFFUSE LOBE ---
-        float pLobe = 0.5f;
-        if (sampler.Sample1D() < pLobe) {
-            sample.wo = sampler.SampleHemisphereCosine(n);
-            float cos = glm::max(0.0f, glm::dot(n, sample.wo));
-            sample.pdf = pLobe * cos / M_PI;
-            glm::vec3 diffuseBrdf = (disney->albedo / M_PI) * (1.0f - disney->metallic);
-            sample.weight = diffuseBrdf / sample.pdf;
-            return sample;
-        }
-
-		// --- II. SPECULAR LOBE ---
-
-        // Variables
-        float eta = hit.front ? 1.0f / disney->eta : disney->eta;
-		float eta2 = eta * eta;
-        float F = ShlickFresnel(hDotWi, eta);
-	    float nDotH = glm::max(0.0f, glm::dot(n, h));
-        float nDotWo = glm::max(0.0f, glm::dot(n, wi));
-
-        // Decide response based on Fresnel 
-		float x = sampler.Sample1D();
+    // =================	
+    // === (A) Glass ===
+    // =================
+    if (disney->metallic < EPS && disney->roughness < EPS && disney->eta > 1.0f) {
+		float nDotI = glm::dot(n, I);
+		float F = ShlickFresnel(nDotI, eta);
+        F = glm::clamp(F, 1e-4f, 1.0f - 1e-4f);
 
         // 1. Reflect
-        if (x < F) {
-
-            // Reflection probability 
-            float GGXreflect = DGGX(r, h, n);
-            float pReflect = (1.0f - pLobe) * GGXreflect * hDotN / (4.0f * hDotWi);
-
-            // Reflection weight
-            glm::vec3 weight = glm::vec3(F / pReflect);
-
-            // Return sample
-            sample.weight = weight;
-            sample.pdf = pReflect;
-            sample.wo = dReflect;
-			return sample;
+        if (sampler.Sample1D() > F) {
+			sample.wo = glm::reflect(I, n);
+            sample.pdf = F;
+            sample.weight = glm::vec3(1.0f);
+            sample.isDelta = true;
+            return sample;
         }
-
         // 2. Refract
         else {
-            // TODO: h or n?
-            //glm::vec3 dRefract = glm::refract(wo, h, eta);
-            glm::vec3 dRefract = glm::refract(wi, h, eta);
 
-            // Case 1: Total internal reflection
+			// Case 1: Total internal reflection
+			glm::vec3 dRefract = glm::refract(I, n, eta);
             if (glm::length(dRefract) == 0.0f) {
-
-                // Reflection probability 
-                float D = DGGX(r, h, n);
-                float pReflect = (1.0f - pLobe) * D * hDotN / (4.0f * hDotWi * eta2);
-
-                // Reflection weight
-                glm::vec3 weight = glm::vec3(F / pReflect);
-
-                glm::vec3 dReflect = glm::reflect(wi, h);
-                sample.weight = weight;
-                sample.pdf = pReflect;
-                sample.wo = dReflect;
+				sample.wo = glm::reflect(I, n);
+                sample.pdf = 1.0f;
+				sample.weight = glm::vec3(1.0f);
+                sample.isDelta = true;
                 return sample;
             }
 
             // Case 2: Refraction
-            else {
-
-                // Refraction probability 
-                float D = DGGX(r, h, n);
-                float pRefract = (1.0f - pLobe) * D * hDotN / (eta2 * glm::dot(dRefract, wi));
-
-                // Refraction weight
-				glm::vec3 weight = glm::vec3((1.0f - F) * eta * eta / pRefract);
-
-                // Return sample
-                sample.weight = weight;
-				sample.wo = dRefract;
-                sample.pdf = pRefract;
-                return sample;
-			}
+			sample.wo = dRefract;
+			sample.pdf = 1.0f - F;
+			sample.weight = glm::vec3(eta * eta);
+			sample.isDelta = true;
+			return sample;
         }
     }
 
-    return sample;
+    // =========================
+    // === (B) Perfect metal === 
+    // =========================
+    else if (disney->metallic > NEPS && disney->roughness < EPS) {
+        glm::vec3 dReflect = glm::reflect(I, n);
+        sample.wo = dReflect;
+        sample.weight = disney->albedo;
+        sample.pdf = 1.0f;
+        sample.isDelta = true;
+        return sample;
+    }
+
+    // ========================
+    // === (C) Glossy Metal ===
+    // ========================
+    else if (disney->metallic > NEPS && disney->roughness > EPS) {
+
+        glm::vec3 h = glm::vec3(0.0f);
+        float hDotI = -1.0f;
+
+        // Guarantee GGX sample in visible hemisphere | TODO: Implement Heiz VNDF
+        int maxTrials = 10;
+        int trials = 0;
+        do {
+            h = sampler.SampleHemisphereGGX(n, r);
+            hDotI = glm::dot(h, I);
+        } while (hDotI <= 0.0f && ++trials < maxTrials);
+
+        glm::vec3 dReflect = glm::reflect(I, h);
+		float nDotWo = glm::dot(n, dReflect);
+        if (hDotI <= 0.0f || nDotWo <= 0.0f) { sample.pdf = 0;  return sample; }
+
+        float hDotN = glm::dot(h, n);
+        float hDotWo = glm::abs(glm::dot(dReflect, h));
+        if (hDotWo <= 1e-6f) { sample.pdf = 0; return sample; }
+
+		// Reflection probability 
+		float D = DGGX(r, h, n);
+		float pReflect = D * hDotN / (4.0f * hDotWo);
+
+		// Return sample
+		float cos = glm::max(0.0f, glm::dot(n, dReflect));
+		sample.weight = glm::vec3(cos / pReflect);
+		sample.pdf = pReflect;
+		sample.wo = dReflect;
+		return sample;
+    }
+
+    // ===================
+    // === (D) Plastic ===
+    // ===================
+    else {
+		float Fo = 0.04f;
+		float pDiffuse = 1.0f - Fo;
+        float pSpecular = Fo;
+
+        // --- I. DIFFUSE LOBE ---
+        if (sampler.Sample1D() < pDiffuse) {
+            sample.wo = sampler.SampleHemisphereCosine(n);
+            float cos = glm::max(0.0f, glm::dot(n, sample.wo));
+            sample.pdf = pDiffuse * cos * M_1_PI;
+            sample.weight = glm::vec3(cos / pDiffuse);
+            return sample;
+        }
+
+        // --- II. SPECULAR LOBE ---
+        glm::vec3 h = glm::vec3(0.0f);
+        float hDotI = -1.0f;
+
+        // Guarantee GGX sample in visible hemisphere | TODO: Implement Heiz VNDF
+        int maxTrials = 10;
+        int trials = 0;
+        do {
+            h = sampler.SampleHemisphereGGX(n, r);
+            hDotI = glm::dot(h, I);
+        } while (hDotI <= 0.0f && ++trials < maxTrials);
+
+        glm::vec3 dReflect = glm::reflect(I, h);
+		float nDotWo = glm::dot(n, dReflect);
+        if (hDotI <= 0.0f || nDotWo <= 0.0f) { sample.pdf = 0.0f; return sample; }
+
+        float hDotN = glm::dot(h, n);
+		float hDotWo = glm::abs(glm::dot(dReflect, h));
+        if (hDotWo <= 1e-6f) { sample.pdf = 0; return sample; }
+
+		// Reflection probability 
+		float D = DGGX(r, h, n);
+		float pReflect = pSpecular * D * hDotN / (4.0f * hDotWo);
+
+		// Return sample
+		sample.wo = dReflect;
+		float cos = glm::max(0.0f, glm::dot(n, sample.wo));
+		sample.pdf = pReflect;
+		sample.weight = glm::vec3(cos / sample.pdf);
+		return sample;
+    }
 }
 
 // === BxDF Shading ===
@@ -224,35 +234,69 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
                                const glm::vec3& wo, 
                                const DisneyMaterial* disney) {
 
-    // Variables
-	glm::vec3 h = glm::normalize(wi + wo);
-	float r = glm::max(0.05f, disney->roughness);
 	glm::vec3 n = hit.front ? hit.n : -hit.n;
-    float nDotWi = glm::max(0.0f, glm::dot(n, wi));
-    float nDotWo = glm::max(0.0f, glm::dot(n, wo));
-    if (nDotWi <= 0.0f || nDotWo <= 0.0f) return glm::vec3(0.0f); // Backface
-    float hDotWi = glm::max(0.0f, glm::dot(h, wi));
-    float hDotWo = glm::max(0.0f, glm::dot(h, wo));
-   
-    // Dielectric BRDF
-    // TODO: Integrate subsurface scattering with dipole model
-    float cos2 = hDotWo * hDotWo;
-    float fd90 = 0.5f + 2.0f * disney->roughness * cos2;
-    float fd = (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWi), 5))) * 
-               (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWo), 5)));
-    glm::vec3 diffuse = disney->albedo * M_1_PI * (1.0f - disney->metallic) * fd;
+    float etaI = hit.front ? 1.0f : disney->eta;
+    float etaO = hit.front ? disney->eta : 1.0f;
+    float eta = etaI / etaO;
+    float nDotWi = glm::dot(n, wi);
+    float nDotWo = glm::dot(n, wo);
 
-    // Specular BRDF
-	glm::vec3 Fo = glm::mix(glm::vec3(0.04f), disney->albedo, disney->metallic);
-    glm::vec3 F = Fo + (1.0f - Fo) * glm::pow(1.0f - hDotWo, 5.0f);
-    float K = glm::pow((r + 1.0f),2) / 8.0f;
-	float Gwi = nDotWi / (nDotWi * (1.0f - K) + K);
-	float Gwo = nDotWo / (nDotWo * (1.0f - K) + K);
-    float G = Gwi * Gwo;
-	float D = DGGX(r, h, n);
-	glm::vec3 specular = (F * G * D) / (4.0f * nDotWi * nDotWo);
+    bool isReflection = (nDotWi > 0.0f && nDotWo > 0.0f);
+    bool isTransmission = (nDotWi * nDotWo < 0.0f);
+    if (!isReflection && !isTransmission) return glm::vec3(0);
 
-    return diffuse + specular;
+    // BSSRDF
+    if (isReflection) {
+		float r = disney->roughness;
+		nDotWi = glm::max(0.0f, nDotWi);
+		nDotWo = glm::max(0.0f, nDotWo);
+		glm::vec3 h = glm::normalize(wi + wo);
+		float hDotWi = glm::abs(glm::dot(h, wi));
+		float hDotWo = glm::abs(glm::dot(h, wo));
+
+		// Diffuse | TODO: Integrate subsurface scattering with dipole model
+		float cos2 = hDotWo * hDotWo;
+		float fd90 = 0.5f + 2.0f * r * cos2;
+		float fd = (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWi), 5))) * 
+				   (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWo), 5)));
+		glm::vec3 diffuse = disney->albedo * M_1_PI * (1.0f - disney->metallic) * fd;
+
+		// Specular
+		glm::vec3 Fo = glm::mix(glm::vec3(0.04f), disney->albedo, disney->metallic);
+		glm::vec3 F = Fo + (1.0f - Fo) * glm::pow(1.0f - hDotWo, 5.0f);
+		float K = glm::pow((r + 1.0f),2) / 8.0f;
+		float Gwi = nDotWi / (nDotWi * (1.0f - K) + K);
+		float Gwo = nDotWo / (nDotWo * (1.0f - K) + K);
+		float G = Gwi * Gwo;
+		float D = DGGX(r, h, n);
+		glm::vec3 specular = (F * G * D) / (4.0f * nDotWi * nDotWo);
+
+        return diffuse + specular;
+    }
+
+    // BTDF
+    else if (isTransmission) {
+		float r = disney->roughness;
+		glm::vec3 h = glm::normalize(etaI * wi + etaO * wo);
+        if (glm::dot(h, n) < 0.0f) h = -h;
+		float hDotWi = glm::abs(glm::dot(h, wi));
+		float hDotWo = glm::abs(glm::dot(h, wo));
+		nDotWi = glm::abs(nDotWi);
+		nDotWo = glm::abs(nDotWo);
+		float D = DGGX(r, h, n);
+		float K = glm::pow((r + 1.0f), 2) / 8.0f;
+		float Gwi = nDotWi / (nDotWi * (1.0f - K) + K);
+		float Gwo = nDotWo / (nDotWo * (1.0f - K) + K);
+		float G = Gwi * Gwo;
+
+		float F = ShlickFresnel(hDotWi, etaI / etaO);
+        float denom = etaI * hDotWi + etaO * hDotWo;
+        float factor = (etaO * etaO) * hDotWi * hDotWo / (nDotWi * nDotWo * denom * denom);
+        return disney->albedo * (1.0f - F) * D * G * factor;
+    }
+
+    // Invalid
+    else return glm::vec3(0.0f);
 }
 
 // === BxDF PDF's ===
@@ -286,11 +330,40 @@ float Shading::PdfDisney(const HitInfo& hit,
                          const glm::vec3& wo, 
                          const DisneyMaterial* disney,
                          Sampler& sampler) {
-	float r = glm::max(0.05f, disney->roughness);
-	//glm::vec3 h = sampler.SampleHemisphereGGX(hit.n, r);
+
+    float EPS = 1e-4f;
+    bool isDelta = disney->roughness < EPS &&
+            (disney->metallic > 1.0f - EPS ||
+		     disney->eta > 1.0f);
+    if (isDelta) return 0.0f;
+
+	glm::vec3 n = hit.front ? hit.n : -hit.n;
+	float nDotWi = glm::dot(n, wi);
+	float nDotWo = glm::dot(n, wo);
+
+    bool isTransmission = (nDotWi <= 0.0f || nDotWo <= 0.0f);
+    if (isTransmission) return 0.0f;
+
+    float Fo = glm::mix(0.04f, 1.0f, disney->metallic);
+    float pSpecular = Fo;
+    float pDiffuse = 1.0f - pSpecular;
+
+	float pdf = 0.0f;
+
+	// --- I. DIFFUSE LOBE ---
+	float pdfDiffuse = nDotWi * M_1_PI;
+	pdf += pDiffuse * pdfDiffuse;
+
+	// --- II. SPECULAR LOBE ---
 	glm::vec3 h = glm::normalize(wi + wo);
-    float D = DGGX(r, h, hit.n);
-	float hDotWi = glm::max(0.0f, glm::dot(h, wi));
-	float hDotWo = glm::max(0.0f, glm::dot(h, wo));
-    return D * hDotWi / (4.0f * hDotWo);
+	float hDotN = glm::max(0.0f, glm::dot(h, n));
+	float hDotWo = glm::abs(glm::dot(h, wo));
+
+	if (hDotN > 0.0f && hDotWo > 1e-6f) {
+		float D = DGGX(disney->roughness, h, n);
+		float pdfSpecular = D * hDotN / (4.0f * hDotWo);
+		pdf += pSpecular * pdfSpecular;
+	}
+
+    return pdf;
 }

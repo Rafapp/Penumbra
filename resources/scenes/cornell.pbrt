@@ -21,7 +21,8 @@ AttributeEnd
 
 # Top
 AttributeBegin
-  Material "matte" "rgb Kd" [0.7 0.7 0.7]
+  Material "disney" "color color" [0.7 0.7 0.7] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 0.0 24.0
   Rotate 180 1 0 0
   Scale 64 64 64
@@ -30,7 +31,8 @@ AttributeEnd
 
 # Bottom
 AttributeBegin
-  Material "matte" "rgb Kd" [0.7 0.7 0.7]
+  Material "disney" "color color" [0.7 0.7 0.7] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 0.0 0.0
   Scale 64 64 64
   Shape "plymesh" "string filename" ["./resources/meshes/plane.obj"]
@@ -38,7 +40,8 @@ AttributeEnd
 
 # Back
 AttributeBegin
-  Material "matte" "rgb Kd" [0.7 0.7 0.7]
+  Material "disney" "color color" [0.7 0.7 0.7] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.7 0.7 0.7]
   Translate 0.0 20.0 12.0
   Rotate 90 1 0 0
   Scale 64 64 64
@@ -47,7 +50,8 @@ AttributeEnd
 
 # Left
 AttributeBegin
-  Material "matte" "rgb Kd" [0.7 0.14 0.14]
+  Material "disney" "color color" [0.7 0.14 0.14] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.7 0.14 0.14]
   Translate -15.0 0.0 12.0
   Rotate 90 0 1 0
   Scale 64 64 64
@@ -56,7 +60,8 @@ AttributeEnd
 
 # Right
 AttributeBegin
-  Material "matte" "rgb Kd" [0.14 0.7 0.14]
+  Material "disney" "color color" [0.14 0.7 0.14] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.14 0.7 0.14]
   Translate 15.0 0.0 12.0
   Rotate -90 0 1 0
   Scale 64 64 64
@@ -67,27 +72,36 @@ AttributeEnd
 
 #Center
 AttributeBegin
-  Material "disney" "color color" [0.14 0.7 0.14] "float metallic" [0.0] "float roughness" [0.0] "float eta" [1.5]
+  Material "disney" "color color" [1 1 1] "float metallic" [0.0] "float roughness" [0.0] "float eta" [1.5]
   #Material "matte" "rgb Kd" [0.14 0.7 0.14]  
-  Translate 0.0 4.0 6.0
+  Translate 0.0 0.0 5.0
   Scale 6.0 6.0 6.0
   Shape "sphere"
 AttributeEnd
 
 # Right
 AttributeBegin
-  Material "matte" "rgb Kd" [0.7 0.14 0.14]
-  Translate 9.0 -3.0 5.0
+  Material "disney" "color color" [0.7 0.14 0.14] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.7 0.14 0.14]
+  Translate 9.0 3.0 5.0
   Scale 5.0 5.0 5.0
   Shape "sphere"
 AttributeEnd
 
 #Left
 AttributeBegin
-  Material "matte" "rgb Kd" [0.14 0.14 0.7]
-  Translate -9.0 -3.0 5.0
+  Material "disney" "color color" [0.14 0.14 0.7] "float metallic" [0.0] "float roughness" [1.0] "float eta" [1.0]
+  #Material "matte" "rgb Kd" [0.14 0.14 0.7]
+  Translate -9.0 3.0 5.0
   Scale 5.0 5.0 5.0
   Shape "sphere"
 AttributeEnd
 
+# === Teapot ===
+AttributeBegin
+  Material "disney" "color color" [0.14 0.14 0.7] "float metallic" [0.0] "float roughness" [0.0] "float eta" [1.5]
+  Translate -9.0 3.0 5.0
+  Scale 1.0 1.0 1.0
+  Shape "plymesh" "string filename" ["./resources/meshes/teapot.obj"]
+AttributeEnd
 WorldEnd
