@@ -99,6 +99,9 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     gui->SetRenderCallback([r]() {
         r->BeginRender();
     });
+    gui->SetSaveCallback([r]() {
+        r->SaveImage();
+	});
     renderer->SetGUI(gui.get());
 	auto rs = gui->GetRenderSettings();
     viewportRenderWidth = rs.width;

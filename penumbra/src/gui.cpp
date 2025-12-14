@@ -61,9 +61,9 @@ void GUI::Render() {
         }
 
         // Save button
-        if (ImGui::Button("Render", ImVec2(panelWidth, 40.0f))) {
-            if (renderCallback) {
-                renderCallback();
+        if (ImGui::Button("Save", ImVec2(panelWidth, 40.0f))) {
+            if (saveCallback) {
+                saveCallback();
             }
         }
 

@@ -4,6 +4,10 @@
 #include <thread>
 
 #include "minipbrt.h"
+#include <OpenImageIO/imageio.h>
+#include <filesystem>
+#include <sstream>
+#include <iomanip>
 
 #include "scene.h"
 #include "threading.h"
@@ -19,8 +23,8 @@
 // #define LIGHTING_ERROR_THRESHOLD 1e-1f
 
 #define OCCLUDED_EPS 1e-4f
-//inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
- inline unsigned int NTHREADS = 2;
+inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
+ //inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:
@@ -40,6 +44,7 @@ public:
     void SetRenderHeight(int h) { renderHeight = h; }
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
     void SetGUI(GUI* guiPtr) { gui = guiPtr; }
+	void SaveImage();
 
 private:
     std::string sceneFilename;

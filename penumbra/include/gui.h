@@ -36,11 +36,16 @@ public:
     void SetRenderCallback(std::function<void()> callback) {
         renderCallback = callback;
     }
+    void SetSaveCallback(std::function<void()> callback) {
+        saveCallback = callback;
+    }
+
 
     RenderSettings GetRenderSettings() { return renderSettings; }
 
 private:
     std::function<void()> renderCallback;
+	std::function<void()> saveCallback;
     GLFWwindow* m_window;
     ImFont* font;
 	RenderSettings renderSettings;

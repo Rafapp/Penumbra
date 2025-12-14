@@ -1,4 +1,4 @@
-#include "renderer.h"
+﻿#include "renderer.h"
 
 #include "pbrtloader.h"
 #include "shading.h"
@@ -29,6 +29,103 @@ bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
         return false;
     }
 }
+
+#include <OpenImageIO/imageio.h>
+#include <cstdio>
+
+void Renderer::SaveImage()
+{
+    static int imageIndex = 1;
+
+    // ============================
+    // Stereo / anaglyph controls
+    // ============================
+    bool stereo = true;   // set true for anaglyph rendering
+    bool leftEye = false;   // true = left (red), false = right (cyan)
+
+    const int width = renderWidth;
+    const int height = renderHeight;
+    const int nchannels = 3; // RGB
+
+    const char* eyeSuffix = "";
+    if (stereo) {
+        eyeSuffix = leftEye ? "_left" : "_right";
+    }
+
+    char filename[512];
+    std::snprintf(
+        filename,
+        sizeof(filename),
+        "C:/Users/rpadi/Documents/Dev/Penumbra/images/image%04d%s.png",
+        imageIndex,
+        eyeSuffix
+    );
+
+    // Increment index only once per stereo pair
+    if (!stereo || !leftEye) {
+        imageIndex++;
+    }
+
+    OIIO::ImageSpec spec(width, height, nchannels, OIIO::TypeDesc::UINT8);
+
+    auto out = OIIO::ImageOutput::create(filename);
+    if (!out) {
+        std::cerr << "OIIO create error: " << OIIO::geterror() << std::endl;
+        return;
+    }
+
+    if (!out->open(filename, spec)) {
+        std::cerr << "OIIO open error: " << out->geterror() << std::endl;
+        return;
+    }
+
+    const uint8_t* src = renderBuffer.data();
+
+    // ----------------------------
+    // Non-stereo: write as-is
+    // ----------------------------
+    if (!stereo) {
+        out->write_image(OIIO::TypeDesc::UINT8, src);
+        out->close();
+        return;
+    }
+
+    // ----------------------------
+    // Stereo anaglyph output
+    // ----------------------------
+    std::vector<uint8_t> stereoBuffer(width * height * 3);
+
+    for (int i = 0; i < width * height; ++i) {
+        uint8_t r = src[3 * i + 0];
+        uint8_t g = src[3 * i + 1];
+        uint8_t b = src[3 * i + 2];
+
+        if (leftEye) {
+            // Left eye → red only
+            stereoBuffer[3 * i + 0] = r;
+            stereoBuffer[3 * i + 1] = 0;
+            stereoBuffer[3 * i + 2] = 0;
+        }
+        else {
+            // Right eye → cyan (green + blue)
+            stereoBuffer[3 * i + 0] = 0;
+            stereoBuffer[3 * i + 1] = g;
+            stereoBuffer[3 * i + 2] = b;
+        }
+    }
+
+    bool ok = out->write_image(
+        OIIO::TypeDesc::UINT8,
+        stereoBuffer.data()
+    );
+
+    if (!ok) {
+        std::cerr << "OIIO write_image error: " << out->geterror() << std::endl;
+    }
+
+    out->close();
+}
+
 
 void Renderer::BeginRender() {
     if(threadPool) threadPool->Stop();
