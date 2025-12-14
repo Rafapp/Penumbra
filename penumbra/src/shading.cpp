@@ -223,7 +223,7 @@ glm::vec3 Shading::ShadeMatte(const HitInfo& hit,
                               const glm::vec3& wo, 
                               const MatteMaterial* matte) {
 
-    return matte->albedo / M_PI;
+    return matte->albedo / float(M_PI);
 }
 
 // "Physically-Based Shading at Disney," Brent Burley (2012)
@@ -259,7 +259,7 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
 		float fd90 = 0.5f + 2.0f * r * cos2;
 		float fd = (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWi), 5))) * 
 				   (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWo), 5)));
-		glm::vec3 diffuse = disney->albedo * M_1_PI * (1.0f - disney->metallic) * fd;
+		glm::vec3 diffuse = disney->albedo * float(M_1_PI) * (1.0f - disney->metallic) * fd;
 
 		// Specular
 		glm::vec3 Fo = glm::mix(glm::vec3(0.04f), disney->albedo, disney->metallic);

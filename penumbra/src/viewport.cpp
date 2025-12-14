@@ -224,7 +224,7 @@ void Viewport::ResizeCallbackStatic(GLFWwindow* window, int w, int h){
 #ifdef __APPLE__ 
     Viewport* vp = static_cast<Viewport*>(glfwGetWindowUserPointer(window));
     if (vp) {
-		vp->ResizeViewport(window, w, h);
+		vp->ResizeViewport(w, h);
     }
 #elif _WIN32 
     Viewport* vp = static_cast<Viewport*>(glfwGetWindowUserPointer(window));

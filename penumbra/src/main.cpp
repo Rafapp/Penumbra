@@ -34,8 +34,8 @@ int main() {
 	// }
 
 	// Load PBRT scene
-	//std::string sceneFilename = "./resources/scenes/cornell.pbrt";
-	std::string sceneFilename = "./resources/scenes/fly_right.pbrt";
+	std::string sceneFilename = "./resources/scenes/cornell.pbrt";
+	// std::string sceneFilename = "./resources/scenes/fly_right.pbrt";
 	//std::string sceneFilename = "./resources/scenes/cornell_right.pbrt";
 	Renderer renderer;
 	renderer.LoadScene(sceneFilename);
