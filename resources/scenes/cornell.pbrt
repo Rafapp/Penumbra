@@ -2,7 +2,7 @@ Film "image" "integer xresolution" [800] "integer yresolution" [800] "string fil
 Sampler "sobol" "integer samples" [16]
 Integrator "path" "integer maxdepth" [8]
 
-LookAt 0.625 -60.0 12.0  0.0 0.0 12.0  0 0 1
+LookAt 0.0 -60.0 12.0  0.0 0.0 12.0  0 0 1
 Camera "perspective" "float fov" [30] "float focaldistance" [1] "float lensradius" [0]
 
 WorldBegin
@@ -11,7 +11,7 @@ WorldBegin
 AttributeBegin
   Translate 0.0 0.0 18.0
   Scale 3.0 3.0 3.0
-  AreaLightSource "diffuse" "rgb L" [35 35 35]
+  AreaLightSource "diffuse" "rgb L" [30 30 30]
   Shape "sphere" "float radius" [3.0]
 AttributeEnd
 

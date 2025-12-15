@@ -151,7 +151,7 @@ FetchContent_Declare(
 )
 
 # Bring all FetchContent targets into the build
-FetchContent_MakeAvailable(assimp minipbrt glm glfw imgui)
+FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
 
 # Fix minipbrt typo
 file(READ ${minipbrt_SOURCE_DIR}/main.cpp contents)
@@ -161,7 +161,7 @@ file(WRITE ${minipbrt_SOURCE_DIR}/main.cpp "${contents}")
 # ======================================================================
 #  Build Options
 # ======================================================================
-option(PATHTRACER_HEADLESS "Build without UI" OFF)
+option(PATHTRACER_HEADLESS "Build without UI (Headless)" OFF)
 option(ENABLE_VERIFY_TESTS "Build linkage verification tests" ON)
 
 # ======================================================================
@@ -289,7 +289,6 @@ endif()
 # ======================================================================
 
 file(GLOB SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/*.cpp)
-list(APPEND SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/threading.cpp)
 file(GLOB HEADER_FILES ${CMAKE_SOURCE_DIR}/penumbra/include/*.h)
 
 add_executable(penumbra ${SRC_FILES} ${HEADER_FILES})
@@ -309,7 +308,7 @@ target_include_directories(penumbra PRIVATE
 )
 
 # Silence TinyBVH warnings
-target_include_directories(penumbra SYSTEM PRIVATE ${tinybvh_SOURCE_DIR})
+# target_include_directories(penumbra SYSTEM PRIVATE ${tinybvh_SOURCE_DIR})
 
 target_link_libraries(penumbra PRIVATE
 	glfw assimp imgui OpenImageIO::OpenImageIO glad

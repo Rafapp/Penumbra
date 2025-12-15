@@ -53,14 +53,14 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
 bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
     // Möller & Trumbore, 1997
     // TODO: Bvh
-    int nTris = static_cast<int>(triangles.size());
     float closest = FLT_MAX;
     bool hitAny = false;
 
     for(int i = 0; i < nTris; i++){
-        glm::vec3 v0 = vertices[triangles[i].x];
-        glm::vec3 e1 = vertices[triangles[i].y] - v0;
-        glm::vec3 e2 = vertices[triangles[i].z] - v0;
+        // TODO: ?
+        glm::vec3 v0 = vertices->data()[triangles->data()[i].x];
+        glm::vec3 e1 = vertices->data()[triangles->data()[i].y] - v0;
+        glm::vec3 e2 = vertices->data()[triangles->data()[i].z] - v0;
         glm::vec3 ray_cross_e2 = glm::cross(r.d, e2);
         float det = glm::dot(e1, ray_cross_e2);
 
@@ -88,9 +88,9 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             // Compute hit point, normal, and t value in world space
             hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
 
-            glm::vec3 n0 = normals[triangles[i].x];
-            glm::vec3 n1 = normals[triangles[i].y];
-            glm::vec3 n2 = normals[triangles[i].z];
+            glm::vec3 n0 = normals->data()[triangles->data()[i].x];
+            glm::vec3 n1 = normals->data()[triangles->data()[i].y];
+            glm::vec3 n2 = normals->data()[triangles->data()[i].z];
             glm::vec3 nObj = glm::normalize((1 - u - v)*n0 + u*n1 + v*n2);
             glm::mat3 normalMatrix = glm::transpose(glm::mat3(inverseTransform));
             hit.n = glm::normalize(normalMatrix * nObj);
@@ -162,6 +162,7 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
 bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     std::cout << "Loading mesh with Assimp: " << filename << std::endl;
     Assimp::Importer importer;
+    // NOTE: Assuming flipped winding order for PBRT
     const aiScene* scene = importer.ReadFile(filename,
         aiProcess_Triangulate | 
         aiProcess_GenNormals | 
@@ -177,37 +178,54 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     const aiMesh* mesh = scene->mMeshes[0];
     
     // Copy vertices
-    vertices.resize(mesh->mNumVertices);
-    for (size_t i = 0; i < mesh->mNumVertices; i++) {
-        vertices[i] = glm::vec3(mesh->mVertices[i].x,
-                                     mesh->mVertices[i].y,
-                                     mesh->mVertices[i].z);
+    nVerts = scene->mMeshes[0]->mNumVertices;
+    nTris = scene->mMeshes[0]->mNumFaces;
+    if(nVerts > 0 && nTris > 0){
+        vertices = new std::vector<glm::vec3>(nVerts);
+        for (uint32_t i = 0; i < nVerts; i++) {
+            (*vertices)[i] = glm::vec3(
+                mesh->mVertices[i].x,
+                mesh->mVertices[i].y,
+                mesh->mVertices[i].z
+            );
+        }
+    } else {
+        std::cerr << "Face or Vertex count for mesh < 0" << std::endl;
     }
     
     // Copy normals
     if (mesh->HasNormals()) {
-        normals.resize(mesh->mNumVertices);
-        for (size_t i = 0; i < mesh->mNumVertices; i++) {
-            normals[i] = glm::vec3(mesh->mNormals[i].x,
-                                        mesh->mNormals[i].y,
-                                        mesh->mNormals[i].z);
+        normals = new std::vector<glm::vec3>(nVerts);
+        for (size_t i = 0; i < nVerts; i++) {
+            (*normals)[i] = glm::vec3(mesh->mNormals[i].x,
+                                      mesh->mNormals[i].y,
+                                      mesh->mNormals[i].z);
         }
+    } else {
+        std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
     }
     
-    // Copy faces (triangles)
-    triangles.resize(mesh->mNumFaces);
-    for (size_t i = 0; i < mesh->mNumFaces; i++) {
+    // Copy triangles (triangle indices) 
+    triangles = new std::vector<glm::uvec3>(nTris); 
+    for (size_t i = 0; i < nTris; i++) {
         const aiFace& face = mesh->mFaces[i];
-        if (face.mNumIndices == 3) {
-            triangles[i] = glm::uvec3(face.mIndices[0],
-                                           face.mIndices[1],
-                                           face.mIndices[2]);
-        }
+        (*triangles)[i] = glm::uvec3(face.mIndices[0],
+                                      face.mIndices[1],
+                                      face.mIndices[2]);
     }
     
     std::cout << "Loaded mesh: " << filename << std::endl;
-    std::cout << "  Vertices: " << vertices.size() << std::endl;
-    std::cout << "  Triangles: " << triangles.size() << std::endl;
+    std::cout << "  Vertices: " << nVerts << std::endl;
+    std::cout << "  Triangles: " << nTris << std::endl;
 
+    std::cout << "Building BVH ..." << std::endl;
+    BuildBVH();
+    std::cout << "  BVH Complete" << std::endl;
     return true;
+}
+
+// === BVH Construction ===
+bool TriangleMesh::BuildBVH(){
+    // bvh.Build((tinybvh::bvhvec4*)vertices, nVerts, (tinybvh::bvhuint4*)triangles, nTris);
+    bvh.Build((tinybvh::bvhvec4*)vertices, nVerts);
 }

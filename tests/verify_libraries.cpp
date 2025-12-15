@@ -7,6 +7,11 @@
 #include <iostream>
 #include "minipbrt.h"
 
+#ifndef TINYBVH_IMPLEMENTATION
+#define TINYBVH_IMPLEMENTATION
+#include "tiny_bvh.h"
+#endif
+
 int main() {
     std::cout << "Verifying libraries..." << std::endl;
     std::cout << std::endl;
@@ -69,7 +74,14 @@ int main() {
     }
     
     // Test TinyBVH
-    std::cout << "✓ TinyBVH headers found" << std::endl;
+    try{
+        tinybvh::BVH bvh;
+        std::cout << "✓ TinyBVH working" << std::endl;
+    }
+    catch (...) {
+        std::cout << "✗ TinyBVH failed" << std::endl;
+        return 1;
+    }
     
     std::cout << std::endl;
     std::cout << "All libraries verified!" << std::endl;

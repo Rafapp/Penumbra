@@ -6,9 +6,14 @@
 #include <cmath>
 
 #ifndef M_PI 
-#define M_PI 3.1415927f 
+#define M_PI 3.14159274101257324219f
+#endif
+#ifndef M_1_PI
+#define M_1_PI 0.31830987334251403809f
 #endif
 
+#include "tinybvh_glm_config.h"
+#include "tiny_bvh.h"
 #include "minipbrt.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -53,14 +58,17 @@ private:
 class TriangleMesh : public Shape {
 public:
     TriangleMesh(minipbrt::PLYMesh* plyMesh);
-    
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
+    tinybvh::BVH bvh;
     
 private:
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::uvec3> triangles;
-    std::vector<glm::vec3> normals;
+    std::vector<glm::vec3>* vertices;
+    uint32_t nVerts;
+    std::vector<glm::uvec3>* triangles;
+    uint32_t nTris;
+    std::vector<glm::vec3>* normals;
     
     bool LoadMeshWithAssimp(const std::string& filename);
     bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
+    bool BuildBVH();
 };

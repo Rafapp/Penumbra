@@ -1,7 +1,10 @@
-﻿#include "renderer.h"
+﻿#include "tinybvh_glm_config.h"
+#include "tiny_bvh.h"
 
-#include "pbrtloader.h"
+#include "renderer.h"
+#include "scene.h"
 #include "shading.h"
+#include "pbrtloader.h"
 
 Renderer::Renderer() {
     scene = std::make_unique<Scene>();

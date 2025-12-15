@@ -2,10 +2,12 @@
 
 #include <iostream>
 #include <thread>
+#include <filesystem>
+#include <cstdio>
 
 #include "minipbrt.h"
 #include <OpenImageIO/imageio.h>
-#include <filesystem>
+
 #include <sstream>
 #include <iomanip>
 
@@ -16,11 +18,13 @@
 #include "gui.h"
 #include "color.h"
 
-// TODO: Adaptive SPP
+// TODO: Adaptive sampling 
 // #define MIN_SPP 1 
 // #define MAX_SPP 8 
 // #define SHADING_ERROR_THRESHOLD 1e-1f
 // #define LIGHTING_ERROR_THRESHOLD 1e-1f
+
+class BVH;
 
 #define OCCLUDED_EPS 1e-4f
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
@@ -47,6 +51,7 @@ public:
 	void SaveImage();
 
 private:
+    BVH* bvh;
     std::string sceneFilename;
     std::vector<uint8_t> renderBuffer;
     std::unique_ptr<Scene> scene;

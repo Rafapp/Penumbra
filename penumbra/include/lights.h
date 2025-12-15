@@ -4,7 +4,10 @@
 #include <cmath>
 
 #ifndef M_PI 
-#define M_PI 3.1415927f 
+#define M_PI 3.14159274101257324219f
+#endif
+#ifndef M_1_PI
+#define M_1_PI 0.31830987334251403809f
 #endif
 
 #include "glm/glm.hpp"
