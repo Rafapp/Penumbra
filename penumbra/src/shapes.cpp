@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #define SPHERE_EPS 1e-8f
-#define TRI_EPS 1e-4f
+#define TRI_EPS 1e-6f
 
 // === Ray intersections ===
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
@@ -51,63 +51,75 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
 }
 
 bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
-    // Möller & Trumbore, 1997
-    // TODO: Bvh
-    float closest = FLT_MAX;
-    bool hitAny = false;
+    if (!bvhReady) return false;
 
-    for(int i = 0; i < nTris; i++){
-        // TODO: ?
-        glm::vec3 v0 = vertices->data()[triangles->data()[i].x];
-        glm::vec3 e1 = vertices->data()[triangles->data()[i].y] - v0;
-        glm::vec3 e2 = vertices->data()[triangles->data()[i].z] - v0;
-        glm::vec3 ray_cross_e2 = glm::cross(r.d, e2);
-        float det = glm::dot(e1, ray_cross_e2);
+    float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
+    if (!(s > 0.0f)) return false;
 
-        // Cull back-facing triangles
-        if (fabs(det) < TRI_EPS) continue;
+    float tMaxObj = hit.t / s;
+    if (!(tMaxObj > 0.0f)) tMaxObj = FLT_MAX;
 
-        float invDet = 1.0f / det;
-        glm::vec3 pToV0 = r.o - v0;
+    tinybvh::Ray ray(r.o, r.d, tMaxObj);
+    bvh.Intersect(ray);
 
-        float u = invDet * glm::dot(pToV0, ray_cross_e2);
-        if (u < 0 || u > 1) continue;
-        glm::vec3 pToV0_cross_e1 = glm::cross(pToV0,e1);
+    if (ray.hit.t >= tMaxObj) return false;
 
-        float v = invDet * glm::dot(r.d, pToV0_cross_e1);
-        if (v < 0 || u + v > 1) continue;
+    uint32_t i = ray.hit.prim;
+    if (i >= nTris) return false;
 
-        float t = invDet * glm::dot(e2, pToV0_cross_e1);
-        if(t < TRI_EPS) continue;
+    const glm::vec3 v0 = glm::vec3(bvhTriSoup[3ull * i + 0]);
+    const glm::vec3 v1 = glm::vec3(bvhTriSoup[3ull * i + 1]);
+    const glm::vec3 v2 = glm::vec3(bvhTriSoup[3ull * i + 2]);
 
-        hitAny = true;
+    glm::vec3 e1 = v1 - v0;
+    glm::vec3 e2 = v2 - v0;
 
-        if(t < closest){
-            closest = t;
+    glm::vec3 pvec = glm::cross(r.d, e2);
+    float det = glm::dot(e1, pvec);
+    if (fabs(det) < TRI_EPS) return false;
 
-            // Compute hit point, normal, and t value in world space
-            hit.p = glm::vec3(transform * glm::vec4(r.At(t), 1.0f));
+    float invDet = 1.0f / det;
+    glm::vec3 tvec = r.o - v0;
 
-            glm::vec3 n0 = normals->data()[triangles->data()[i].x];
-            glm::vec3 n1 = normals->data()[triangles->data()[i].y];
-            glm::vec3 n2 = normals->data()[triangles->data()[i].z];
-            glm::vec3 nObj = glm::normalize((1 - u - v)*n0 + u*n1 + v*n2);
-            glm::mat3 normalMatrix = glm::transpose(glm::mat3(inverseTransform));
-            hit.n = glm::normalize(normalMatrix * nObj);
+    float u = invDet * glm::dot(tvec, pvec);
+    if (u < 0.0f || u > 1.0f) return false;
 
-            float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
-            float tWorld = t * s;
-            hit.t = tWorld;
+    glm::vec3 qvec = glm::cross(tvec, e1);
+    float v = invDet * glm::dot(r.d, qvec);
+    if (v < 0.0f || u + v > 1.0f) return false;
 
-            hit.front = glm::dot(nObj, -r.d) > 0.0f;
-            hit.materialId = materialId;
-            hit.areaLightId = areaLightId;
-            hit.shape = this;
-            hit.material = material;
-        }
-    }
-    return hitAny;
+    float tObj = invDet * glm::dot(e2, qvec);
+    if (tObj < TRI_EPS || tObj >= tMaxObj) return false;
+
+    float tWorld = tObj * s;
+    if (tWorld >= hit.t) return false;
+
+    glm::vec3 pObj = r.At(tObj);
+    glm::vec3 pW = glm::vec3(transform * glm::vec4(pObj, 1.0f));
+
+    // Compute world-space normal
+    const glm::uvec4& triIdx = (*triangles)[i];
+    glm::vec3 n0 = (*normals)[triIdx.x];
+    glm::vec3 n1 = (*normals)[triIdx.y];
+    glm::vec3 n2 = (*normals)[triIdx.z];
+    glm::vec3 nObj = glm::normalize((1.0f - u - v) * n0 + u * n1 + v * n2);
+    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+    glm::vec3 nW = glm::normalize(normalMatrix * nObj);
+
+    hit.t = tWorld;
+    hit.p = pW;
+    hit.n = nW;
+    hit.front = glm::dot(glm::vec3(transform * glm::vec4(r.d, 0.0f)), nW) < 0.0f;
+    hit.materialId = materialId;
+    hit.areaLightId = areaLightId;
+    hit.shape = this;
+    hit.material = material;
+    hit.areaLight = areaLight;
+
+    return true;
 }
+
+
 
 // === PBRT Conversion Constructors ===
 Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
@@ -162,6 +174,7 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
 bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     std::cout << "Loading mesh with Assimp: " << filename << std::endl;
     Assimp::Importer importer;
+
     // NOTE: Assuming flipped winding order for PBRT
     const aiScene* scene = importer.ReadFile(filename,
         aiProcess_Triangulate | 
@@ -178,19 +191,21 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     const aiMesh* mesh = scene->mMeshes[0];
     
     // Copy vertices
-    nVerts = scene->mMeshes[0]->mNumVertices;
-    nTris = scene->mMeshes[0]->mNumFaces;
-    if(nVerts > 0 && nTris > 0){
-        vertices = new std::vector<glm::vec3>(nVerts);
-        for (uint32_t i = 0; i < nVerts; i++) {
-            (*vertices)[i] = glm::vec3(
-                mesh->mVertices[i].x,
-                mesh->mVertices[i].y,
-                mesh->mVertices[i].z
-            );
-        }
-    } else {
-        std::cerr << "Face or Vertex count for mesh < 0" << std::endl;
+    nVerts = mesh->mNumVertices;
+    vertices = new std::vector<glm::vec4>(nVerts);
+    for (uint32_t i = 0; i < nVerts; i++) {
+        (*vertices)[i] = glm::vec4(mesh->mVertices[i].x,
+                                mesh->mVertices[i].y,
+                                mesh->mVertices[i].z,
+                                0.0f);
+    }
+
+    // Copy triangle indices
+    nTris = mesh->mNumFaces;
+    triangles = new std::vector<glm::uvec4>(nTris);
+    for (uint32_t i = 0; i < nTris; i++) {
+        const aiFace& face = mesh->mFaces[i];
+        (*triangles)[i] = glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0u);
     }
     
     // Copy normals
@@ -205,15 +220,6 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
         std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
     }
     
-    // Copy triangles (triangle indices) 
-    triangles = new std::vector<glm::uvec3>(nTris); 
-    for (size_t i = 0; i < nTris; i++) {
-        const aiFace& face = mesh->mFaces[i];
-        (*triangles)[i] = glm::uvec3(face.mIndices[0],
-                                      face.mIndices[1],
-                                      face.mIndices[2]);
-    }
-    
     std::cout << "Loaded mesh: " << filename << std::endl;
     std::cout << "  Vertices: " << nVerts << std::endl;
     std::cout << "  Triangles: " << nTris << std::endl;
@@ -221,11 +227,32 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     std::cout << "Building BVH ..." << std::endl;
     BuildBVH();
     std::cout << "  BVH Complete" << std::endl;
+    bvhReady = true;
     return true;
 }
 
 // === BVH Construction ===
-bool TriangleMesh::BuildBVH(){
-    // bvh.Build((tinybvh::bvhvec4*)vertices, nVerts, (tinybvh::bvhuint4*)triangles, nTris);
-    bvh.Build((tinybvh::bvhvec4*)vertices, nVerts);
+bool TriangleMesh::BuildBVH()
+{
+    if (!vertices || !triangles) return false;
+    if (nVerts == 0 || nTris == 0) return false;
+    if (vertices->size() < nVerts) return false;
+    if (triangles->size() < nTris) return false;
+
+    bvhTriSoup.resize(size_t(nTris) * 3ull);
+
+    for (uint32_t i = 0; i < nTris; i++)
+    {
+        const glm::uvec4 t = (*triangles)[i];
+        if (t.x >= nVerts || t.y >= nVerts || t.z >= nVerts) return false;
+
+        const size_t base = size_t(i) * 3ull;
+        bvhTriSoup[base + 0] = (*vertices)[t.x];
+        bvhTriSoup[base + 1] = (*vertices)[t.y];
+        bvhTriSoup[base + 2] = (*vertices)[t.z];
+    }
+
+    bvh.BuildHQ(reinterpret_cast<const tinybvh::bvhvec4*>(bvhTriSoup.data()), nTris);
+    return true;
 }
+

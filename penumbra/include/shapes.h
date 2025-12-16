@@ -14,6 +14,11 @@
 
 #include "tinybvh_glm_config.h"
 #include "tiny_bvh.h"
+
+static_assert(sizeof(tinybvh::bvhvec4) == sizeof(glm::vec4));
+static_assert(alignof(tinybvh::bvhvec4) == alignof(glm::vec4));
+static_assert(sizeof(uint32_t) == 4);
+
 #include "minipbrt.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -59,14 +64,18 @@ class TriangleMesh : public Shape {
 public:
     TriangleMesh(minipbrt::PLYMesh* plyMesh);
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
-    tinybvh::BVH bvh;
+    tinybvh::BVH_SoA bvh;
+    bool bvhReady = false;
     
 private:
-    std::vector<glm::vec3>* vertices;
-    uint32_t nVerts;
-    std::vector<glm::uvec3>* triangles;
-    uint32_t nTris;
-    std::vector<glm::vec3>* normals;
+    std::vector<glm::vec4>* vertices = nullptr;
+    uint32_t nVerts = 0;
+    std::vector<glm::uvec4>* triangles = nullptr;
+    uint32_t nTris = 0;
+    std::vector<glm::vec3>* normals = nullptr;
+    std::vector<uint32_t> bvhIndices;
+    std::vector<glm::vec4> bvhTriSoup;
+
     
     bool LoadMeshWithAssimp(const std::string& filename);
     bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);

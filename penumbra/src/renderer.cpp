@@ -33,9 +33,6 @@ bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
     }
 }
 
-#include <OpenImageIO/imageio.h>
-#include <cstdio>
-
 void Renderer::SaveImage()
 {
     static int imageIndex = 1;
@@ -178,13 +175,15 @@ bool Renderer::Occluded(const glm::vec3& p, const glm::vec3& wi, const glm::vec3
 
 bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
     bool hitAny = false;
-	float closest = FLT_MAX;
-    for(Shape* shape : scene->shapes) {
+    float closest = FLT_MAX;
+    // TODO: Use TLAS (top layer acceleration structure) for faster traversal
+    for (Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
         HitInfo tmpHit;
-        if(shape->IntersectRay(rObj, tmpHit)) {
-            if(tmpHit.t < closest) {
-				closest = tmpHit.t;
+        tmpHit.t = closest;
+        if (shape->IntersectRay(rObj, tmpHit)) {
+            if (tmpHit.t < closest) {
+                closest = tmpHit.t;
                 tmpHit.shape = shape;
                 tmpHit.material = shape->material;
                 tmpHit.areaLight = shape->areaLight;
@@ -213,6 +212,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
     // Trace ray
     HitInfo hit;
+    hit.t = FLT_MAX;
     if (!TraceRay(ray, hit)) {
         return glm::vec3(0.0f);  // TODO: Environment mapping
     }
