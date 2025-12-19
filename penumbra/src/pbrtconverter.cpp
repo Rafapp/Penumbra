@@ -23,7 +23,6 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     for (auto pbrtMat : pbrtScene->materials) {
         Material* material = ConvertMaterial(pbrtMat);
 		scene.materials.push_back(material); 
-		std::cout << "Converted material, total: " << scene.materials.size() << std::endl;
     }
 
     // Area Lights (second)
@@ -31,7 +30,6 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         AreaLight* areaLight = ConvertAreaLight(pbrtAreaLight);
         if (areaLight) {
             scene.lights.push_back(areaLight);
-            std::cout << "Converted area light, total: " << scene.lights.size() << std::endl;
         }
     }
 
@@ -58,14 +56,12 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     for (auto pbrtShape : pbrtScene->shapes) {
         if (shapeIdx >= scene.shapes.size()) break;
         int mi = pbrtShape->material;
-		std::cout << "shape at idx: " << shapeIdx << " has material idx: " << mi << std::endl;
         if (mi == minipbrt::kInvalidIndex || mi >= (int)scene.materials.size()) {
             shapeIdx++;
             continue;
         }
         Material* m = scene.materials[mi];
         if(m->GetType() == minipbrt::MaterialType::Disney) {
-            std::cout << "Disney material detected" << std::endl;
         }
         if (m) scene.shapes[shapeIdx]->material = m;
         shapeIdx++;
@@ -76,7 +72,6 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         IdealLight* idealLight = ConvertIdealLight(pbrtIdealLight);
         if (idealLight) {
             scene.lights.push_back(idealLight);
-            std::cout << "Converted ideal light, total: " << scene.lights.size() << std::endl;
         }
     }
 

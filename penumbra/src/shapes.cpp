@@ -172,7 +172,6 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
 
 // === Mesh loading with Assimp ===
 bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
-    std::cout << "Loading mesh with Assimp: " << filename << std::endl;
     Assimp::Importer importer;
 
     // NOTE: Assuming flipped winding order for PBRT
@@ -219,14 +218,8 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     } else {
         std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
     }
-    
-    std::cout << "Loaded mesh: " << filename << std::endl;
-    std::cout << "  Vertices: " << nVerts << std::endl;
-    std::cout << "  Triangles: " << nTris << std::endl;
 
-    std::cout << "Building BVH ..." << std::endl;
     BuildBVH();
-    std::cout << "  BVH Complete" << std::endl;
     bvhReady = true;
     return true;
 }

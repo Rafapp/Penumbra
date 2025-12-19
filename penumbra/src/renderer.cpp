@@ -33,6 +33,85 @@ bool Renderer::SetPbrtScene(minipbrt::Scene* scene) {
     }
 }
 
+void Renderer::PrintStats() {
+    // ANSI colors (most terminals). If your console doesn’t support it, set USE_COLOR=false.
+    constexpr bool USE_COLOR = true;
+
+    auto c = [&](const char* code) -> const char* { return USE_COLOR ? code : ""; };
+
+    constexpr const char* RST  = "\x1b[0m";
+    constexpr const char* BLD  = "\x1b[1m";
+    constexpr const char* DIM  = "\x1b[2m";
+
+    constexpr const char* LINE = "\x1b[38;5;239m";  // dark gray
+    constexpr const char* HDR  = "\x1b[38;5;81m";   // cyan
+    constexpr const char* SEC  = "\x1b[38;5;215m";  // warm orange
+    constexpr const char* KEY  = "\x1b[38;5;250m";  // light gray
+    constexpr const char* NUM  = "\x1b[38;5;111m";  // blue-ish
+    constexpr const char* ON   = "\x1b[38;5;120m";  // green
+    constexpr const char* OFF  = "\x1b[38;5;203m";  // red
+
+    auto yn = [&](bool v) -> std::string {
+    return std::string(c(v ? ON : OFF)) + (v ? "ENABLED" : "DISABLED") + c(RST);
+};
+
+// Layout constants
+constexpr int KW    = 22; // key width for alignment
+constexpr int INNER = 54; // interior width between the vertical bars
+
+const std::string title = "STARTING RENDER";
+
+// Center title (visible chars only; color codes are not counted in title.size()).
+const int leftPad  = (INNER - static_cast<int>(title.size())) / 2;
+const int rightPad = INNER - static_cast<int>(title.size()) - leftPad;
+
+std::cout
+    << c(LINE) << "┏" << std::string(INNER, '-') << "┓" << c(RST) << "\n"
+    << c(LINE) << "┃"
+    << std::string(leftPad, ' ')
+    << c(BLD) << c(HDR) << title << c(RST)
+    << c(LINE) << std::string(rightPad, ' ')
+    << "┃" << c(RST) << "\n"
+    << c(LINE) << "┗" << std::string(INNER, '-') << "┛" << c(RST) << "\n";
+
+    // === Render Parameters ===
+    std::cout << c(BLD) << c(SEC) << "◆ Render Parameters" << c(RST) << "\n";
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Resolution"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << renderWidth << c(RST) << c(DIM) << " x " << c(RST)
+              << c(NUM) << renderHeight << c(RST) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Samples per pixel"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << spp << c(RST) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Indirect lighting"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << yn(indirectLighting) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "MIS"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << yn(misEnabled) << "\n";
+
+    std::cout << c(LINE) << "  ────────────────────────────────────────────────────" << c(RST) << "\n";
+
+    // === Scene Statistics ===
+    std::cout << c(BLD) << c(SEC) << "◆ Scene Statistics" << c(RST) << "\n";
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of shapes"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << scene->shapes.size() << c(RST) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of lights"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << scene->lights.size() << c(RST) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of materials"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << scene->materials.size() << c(RST) << "\n";
+
+    std::cout << c(LINE) << "  ────────────────────────────────────────────────────" << c(RST) << "\n";
+}
+
 void Renderer::SaveImage()
 {
     static int imageIndex = 1;
@@ -149,8 +228,10 @@ void Renderer::BeginRender() {
 
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
+    PrintStats();
 
     threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+    threadPool->startTime = std::chrono::steady_clock::now();
     threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
 }
 

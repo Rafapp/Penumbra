@@ -1,6 +1,4 @@
 #include "threading.h"
-#include <random>
-#include <algorithm>
 
 //RenderThreadPool::RenderThreadPool(Scene* scene, int nThreads, int w, int h)
 //    : scene(scene), nThreads(nThreads), w(w), h(h),
@@ -98,8 +96,8 @@ void RenderThreadPool::RenderWorker(std::function<void(int, int)> render) {
     {
         std::lock_guard<std::mutex> lock(printMutex);
         int currenttotal = ++activeThreads;
-        std::cout << "dispatching thread pid " << std::this_thread::get_id() 
-                  << ", total: " << currenttotal << std::endl;
+        // std::cout << "dispatching thread pid " << std::this_thread::get_id() 
+                //   << ", total: " << currenttotal << std::endl;
     }
     int idx;
     while (!stop && (idx = tiles.fetch_add(1, std::memory_order_relaxed)) < tilesW * tilesH) {
@@ -113,13 +111,76 @@ void RenderThreadPool::RenderWorker(std::function<void(int, int)> render) {
     {
         std::lock_guard<std::mutex> lock(printMutex);
         int currenttotal = --activeThreads;
-        std::cout << "thread finished pid " << std::this_thread::get_id() 
-                  << ", total: " << currenttotal << std::endl;
+        // std::cout << "thread finished pid " << std::this_thread::get_id() 
+                //   << ", total: " << currenttotal << std::endl;
+        if(currenttotal == 0){
+            PrintStats();
+        }
     }
 }
 
+void RenderThreadPool::PrintStats() {
+    constexpr bool USE_COLOR = true;
+    auto c = [&](const char* code) -> const char* { return USE_COLOR ? code : ""; };
+
+    constexpr const char* RST  = "\x1b[0m";
+    constexpr const char* BLD  = "\x1b[1m";
+    constexpr const char* DIM  = "\x1b[2m";
+
+    constexpr const char* LINE = "\x1b[38;5;239m";
+    constexpr const char* KEY  = "\x1b[38;5;250m";
+    constexpr const char* NUM  = "\x1b[38;5;111m";
+    constexpr const char* OK   = "\x1b[38;5;120m";
+    constexpr const char* BAD  = "\x1b[38;5;203m";
+    constexpr const char* ACC  = "\x1b[38;5;81m";
+
+    auto yn = [&](bool v) -> std::string {
+        return std::string(c(v ? OK : BAD)) + (v ? "ENABLED" : "DISABLED") + c(RST);
+    };
+
+    constexpr int KW = 22;
+    constexpr int INNER = 51;
+    constexpr char HCH = '-';
+
+    const auto endTime  = std::chrono::steady_clock::now();
+    const auto msTotal  = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    const double secTotal = static_cast<double>(msTotal) / 1000.0;
+
+    const int tilesRendered = tiles.load(std::memory_order_relaxed);
+    const int tilesTotal    = tilesW * tilesH;
+    const int threadsActive = activeThreads.load(std::memory_order_relaxed);
+
+    const std::string hdr = "Thread Pool";
+
+    std::cout
+        << "\n"
+        << "  " << c(BLD) << c(OK) << "RENDER COMPLETE" << c(RST) << "\n"
+        << c(LINE) << "  ┌" << std::string(INNER, HCH) << "┐" << c(RST) << "\n"
+        << c(LINE) << "  │ " << c(BLD) << c(ACC) << hdr << c(RST)
+        << c(LINE) << std::string(std::max(0, INNER - 1 - static_cast<int>(hdr.size())), ' ')
+        << "│" << c(RST) << "\n"
+        << c(LINE) << "  └" << std::string(INNER, HCH) << "┘" << c(RST) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Render time"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << c(NUM) << msTotal << c(RST) << c(DIM) << " ms" << c(RST)
+              << c(DIM) << "  (" << c(RST) << c(NUM) << std::fixed << std::setprecision(3) << secTotal
+              << c(RST) << c(DIM) << " s)" << c(RST) << "\n";
+
+    std::cout << std::defaultfloat;
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Shuffle tiles"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << yn(SHUFFLE) << "\n";
+
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Morton ordering"
+              << c(RST) << c(DIM) << " : " << c(RST)
+              << yn(MORTON_ORDERING) << "\n";
+}
+
+
+
 void RenderThreadPool::Start(std::function<void(int, int)> render) {
-    std::cout << "Generating tilemap..." << std::endl; 
     tiles = 0;
     grid = GenerateSpiralTilemap(w, h, tileSize);
     if(MORTON_ORDERING) PrecomputeMortonOrder();
@@ -128,7 +189,7 @@ void RenderThreadPool::Start(std::function<void(int, int)> render) {
     tilesW = (w + tileSize - 1) / tileSize;
     tilesH = (h + tileSize - 1) / tileSize;
 
-	std::cout << "Dispatching " << nThreads - 1 << " threads." << std::endl;
+	std::cout << "Rendering with " << nThreads - 1 << " threads ..." << std::endl;
     stop = false;
 
     for (int i = 0; i < nThreads - 1; i++) {

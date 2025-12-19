@@ -9,6 +9,7 @@
 #include <OpenImageIO/imageio.h>
 
 #include <sstream>
+#include <string>
 #include <iomanip>
 
 #include "scene.h"
@@ -49,6 +50,7 @@ public:
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
     void SetGUI(GUI* guiPtr) { gui = guiPtr; }
 	void SaveImage();
+    void PrintStats();
 
 private:
     BVH* bvh;

@@ -74,6 +74,7 @@ set(FETCHCONTENT_QUIET OFF)
 message(STATUS "FetchContent logging enabled")
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/libraries")
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "Disable FetchContent update checks (no network fetch during reconfigure)" FORCE)
 
 # ----------------------------------------------------------------------
 # Assimp
@@ -83,6 +84,8 @@ FetchContent_Declare(
 	assimp
 	GIT_REPOSITORY https://github.com/assimp/assimp.git
 	GIT_TAG v6.0.2
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 	CMAKE_ARGS
 		-DASSIMP_BUILD_TESTS=OFF
 		-DASSIMP_BUILD_ASSIMP_TOOLS=OFF
@@ -98,6 +101,8 @@ FetchContent_Declare(
 	minipbrt
 	GIT_REPOSITORY https://github.com/vilya/minipbrt.git
 	GIT_TAG a6f9dadb55dae3a8a051c66863fe9b2622f8c7b3
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 )
 
 # ----------------------------------------------------------------------
@@ -112,6 +117,8 @@ FetchContent_Declare(
 	tinybvh
 	GIT_REPOSITORY https://github.com/jbikker/tinybvh.git
 	GIT_TAG 4b5b649f1193374762b0247ee20de3345633bf9b
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 	CMAKE_ARGS
 		-DBUILD_SPEEDTEST=OFF
 		-DBUILD_SHARED_LIBS=OFF
@@ -124,6 +131,8 @@ FetchContent_Declare(
 	glm
 	GIT_REPOSITORY https://github.com/g-truc/glm.git
 	GIT_TAG 1.0.2
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 	CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
 )
 
@@ -134,6 +143,8 @@ FetchContent_Declare(
 	glfw
 	GIT_REPOSITORY https://github.com/glfw/glfw.git
 	GIT_TAG 3.4
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 	CMAKE_ARGS
 		-DGLFW_BUILD_DOCS=OFF
 		-DGLFW_BUILD_TESTS=OFF
@@ -148,6 +159,8 @@ FetchContent_Declare(
 	imgui
 	GIT_REPOSITORY https://github.com/ocornut/imgui.git
 	GIT_TAG v1.89.9
+	GIT_PROGRESS TRUE
+    GIT_SHALLOW  TRUE
 )
 
 # Bring all FetchContent targets into the build
