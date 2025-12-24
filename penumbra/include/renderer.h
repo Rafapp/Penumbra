@@ -29,7 +29,7 @@ class BVH;
 
 #define OCCLUDED_EPS 1e-4f
 inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
- //inline unsigned int NTHREADS = 2;
+//  inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:

@@ -10,8 +10,6 @@
 #define M_1_PI 0.31830987334251403809f
 #endif
 
-#include "image.h"
-#include "viewport.h"
-#include "gui.h"
-#include "pbrtloader.h"
-#include "renderer.h"
+#include "glm/glm.hpp"
+#include "materials.h"
+#include "sampling.h"

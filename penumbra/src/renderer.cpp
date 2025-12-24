@@ -119,7 +119,7 @@ void Renderer::SaveImage()
     // ============================
     // Stereo / anaglyph controls
     // ============================
-    bool stereo = true;   // set true for anaglyph rendering
+    bool stereo = false;   // set true for anaglyph rendering
     bool leftEye = false;   // true = left (red), false = right (cyan)
 
     const int width = renderWidth;
@@ -135,7 +135,7 @@ void Renderer::SaveImage()
     std::snprintf(
         filename,
         sizeof(filename),
-        "C:/Users/rpadi/Documents/Dev/Penumbra/images/image%04d%s.png",
+        "/Users/rafa/Documents/Dev/PenumbraDev/images/image%04d%s.png",
         imageIndex,
         eyeSuffix
     );
@@ -279,6 +279,13 @@ bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
 glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput) {
     glm::vec3 color(0.0f);
 
+    // Trace ray
+    HitInfo hit;
+    hit.t = FLT_MAX;
+    if (!TraceRay(ray, hit)) {
+        return  glm::vec3(0.7f);  // TODO: Environment mapping
+    }
+
     // Russian Roulette
     float pSurvive = 1.0f;
     if (depth > 1){
@@ -289,13 +296,6 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
             return glm::vec3(0.0f);
         }
         throughput /= pSurvive;
-    }
-
-    // Trace ray
-    HitInfo hit;
-    hit.t = FLT_MAX;
-    if (!TraceRay(ray, hit)) {
-        return glm::vec3(0.0f);  // TODO: Environment mapping
     }
 
     glm::vec3 directLight(0.0f);
@@ -312,7 +312,7 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     }
 
     Material* mat = hit.material;
-	if (!mat) return glm::vec3(0.0f);
+	if (!mat) glm::vec3(0.0f);
 
     // ==============================
     // === 2. Sample random light ===
