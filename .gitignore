@@ -1,3 +1,6 @@
+# Penumbra folders
+/resources
+
 # CMake generated files and folders
 build/
 bin/
@@ -10,6 +13,8 @@ cmake_install.cmake
 .ninja_deps
 .ninja_log
 build-msvc/
+build-release/
+build-debug/
 
 # External libraries (FetchContent)
 libraries/
