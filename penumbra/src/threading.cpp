@@ -138,13 +138,42 @@ void RenderThreadPool::PrintStats() {
         return std::string(c(v ? OK : BAD)) + (v ? "ENABLED" : "DISABLED") + c(RST);
     };
 
+    auto fmtDuration = [](long long msTotal) -> std::string {
+        using ll = long long;
+        if (msTotal < 0) msTotal = 0;
+
+        const ll ms  = msTotal % 1000;
+        const ll sT  = msTotal / 1000;
+        const ll s   = sT % 60;
+        const ll mT  = sT / 60;
+        const ll m   = mT % 60;
+        const ll hT  = mT / 60;
+        const ll h   = hT % 24;
+        const ll d   = hT / 24;
+
+        std::ostringstream oss;
+        oss << std::setfill('0');
+
+        if (d > 0) {
+            oss << d << "d "
+                << std::setw(2) << h << ":";
+        } else {
+            oss << std::setw(2) << hT << ":";
+        }
+
+        oss << std::setw(2) << m << ":"
+            << std::setw(2) << s << "."
+            << std::setw(3) << ms;
+
+        return oss.str();
+    };
+
     constexpr int KW = 22;
     constexpr int INNER = 51;
     constexpr char HCH = '-';
 
     const auto endTime  = std::chrono::steady_clock::now();
     const auto msTotal  = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-    const double secTotal = static_cast<double>(msTotal) / 1000.0;
 
     const int tilesRendered = tiles.load(std::memory_order_relaxed);
     const int tilesTotal    = tilesW * tilesH;
@@ -163,11 +192,9 @@ void RenderThreadPool::PrintStats() {
 
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Render time"
               << c(RST) << c(DIM) << " : " << c(RST)
-              << c(NUM) << msTotal << c(RST) << c(DIM) << " ms" << c(RST)
-              << c(DIM) << "  (" << c(RST) << c(NUM) << std::fixed << std::setprecision(3) << secTotal
-              << c(RST) << c(DIM) << " s)" << c(RST) << "\n";
-
-    std::cout << std::defaultfloat;
+              << c(NUM) << fmtDuration(static_cast<long long>(msTotal)) << c(RST)
+              << c(DIM) << "  (" << c(RST) << c(NUM) << msTotal << c(RST) << c(DIM) << " ms)" << c(RST)
+              << "\n";
 
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Shuffle tiles"
               << c(RST) << c(DIM) << " : " << c(RST)
@@ -177,8 +204,6 @@ void RenderThreadPool::PrintStats() {
               << c(RST) << c(DIM) << " : " << c(RST)
               << yn(MORTON_ORDERING) << "\n";
 }
-
-
 
 void RenderThreadPool::Start(std::function<void(int, int)> render) {
     tiles = 0;

@@ -9,6 +9,13 @@
 Renderer::Renderer() {
     scene = std::make_unique<Scene>();
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
+    // TODO: Move to pbrt file or GUI
+	// const std::string envMapFile = "./resources/images/snooker-room-4k.exr";
+    const std::string envMapFile = "./resources/images/neon-photostudio-4k.exr";
+    envMap = EnvironmentMap(envMapFile);
+    if(!envMap.Load()) {
+        std::cerr << "Failed to load environment map: " << envMapFile << std::endl;
+    }
 }
 
 Renderer::~Renderer() {
@@ -283,10 +290,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     HitInfo hit;
     hit.t = FLT_MAX;
     if (!TraceRay(ray, hit)) {
-        return  glm::vec3(0.7f);  // TODO: Environment mapping
+        return envMap.SampleColor(ray);
     }
 
     // Russian Roulette
+    if(depth > 32) return glm::vec3(0.0f); // Hard cutoff
     float pSurvive = 1.0f;
     if (depth > 1){
         float maxEnergy = glm::max(glm::max(throughput.r, throughput.g), throughput.b);

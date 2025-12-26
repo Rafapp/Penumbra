@@ -1,4 +1,5 @@
-#include <OpenImageIO/imageio.h>
+#include <vector>
+#include <cstdint>
 #include <iostream>
 
 namespace Image{

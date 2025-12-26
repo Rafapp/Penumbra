@@ -122,6 +122,7 @@ FetchContent_Declare(
 	CMAKE_ARGS
 		-DBUILD_SPEEDTEST=OFF
 		-DBUILD_SHARED_LIBS=OFF
+		-DBUILD_FENSTER=OFF
 )
 
 # ----------------------------------------------------------------------

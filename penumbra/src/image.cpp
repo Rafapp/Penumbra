@@ -1,4 +1,5 @@
 #include "image.h"
+#include <OpenImageIO/imageio.h>
 
 bool Image::LoadImage(const char *filename, std::vector<uint8_t> &pixels, int &xres, int &yres, int &nchannels){
     auto inp = OIIO::ImageInput::open(filename);

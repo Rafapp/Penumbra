@@ -18,6 +18,7 @@
 #include "sampling.h"
 #include "gui.h"
 #include "color.h"
+#include "environmentmap.h"
 
 // TODO: Adaptive sampling 
 // #define MIN_SPP 1 
@@ -53,7 +54,8 @@ public:
     void PrintStats();
 
 private:
-    BVH* bvh;
+    BVH* bvh = nullptr;
+    EnvironmentMap envMap;
     std::string sceneFilename;
     std::vector<uint8_t> renderBuffer;
     std::unique_ptr<Scene> scene;
