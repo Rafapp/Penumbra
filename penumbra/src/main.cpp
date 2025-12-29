@@ -2,7 +2,6 @@
 #include "main.h"
 
 int main() {
-
 	// Load PBRT scene
 
 	// TODO: Move to GUI, load default scene otherwise

@@ -11,7 +11,7 @@ Renderer::Renderer() {
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     // TODO: Move to pbrt file or GUI
 	// const std::string envMapFile = "./resources/images/snooker-room-4k.exr";
-    const std::string envMapFile = "./resources/images/neon-photostudio-4k.exr";
+    const std::string envMapFile = "./resources/images/grocery-store-4k.exr";
     envMap = EnvironmentMap(envMapFile);
     if(!envMap.Load()) {
         std::cerr << "Failed to load environment map: " << envMapFile << std::endl;
@@ -236,7 +236,6 @@ void Renderer::BeginRender() {
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
     PrintStats();
-
     threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
     threadPool->startTime = std::chrono::steady_clock::now();
     threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
@@ -455,20 +454,30 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
-
-    Sampler sampler(u * renderWidth + v);
     glm::vec3 color(0.0f);
-    int depth = 0;
 
-    for(int i = 0; i < spp; i++){
-        glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
-        Ray camRay = scene->camera->GenerateRay(u + jitter.x, v + jitter.y, renderWidth, renderHeight);
-        glm::vec3 sample = TracePath(camRay, sampler, depth);
-        color += sample;
+    // Miss ray / Env. map (unjittered)
+    Ray envRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
+    HitInfo hit;
+    hit.t = FLT_MAX;
+
+    bool hitAny = TraceRay(envRay, hit);
+    if (!hitAny) {
+        color += envMap.SampleColor(envRay);
+    } 
+    // Pathtrace and super sample
+    else {
+        Sampler sampler(u * renderWidth + v);
+        int depth = 0;
+        for(int i = 0; i < spp; i++){
+            glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
+            Ray camRay = scene->camera->GenerateRay(u + jitter.x, v + jitter.y, renderWidth, renderHeight);
+            glm::vec3 sample = TracePath(camRay, sampler, depth);
+            color += sample;
+        }
+        // Average over samples
+        color /= float(spp);
     }
-
-    // Average over samples
-    color /= float(spp);
 
     // Gamma correct and tonemap
     if(tonemap) Color::UnchartedTonemapFilmic(color, exposureBias);

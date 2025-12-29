@@ -15,6 +15,7 @@
 
 #include "glm/glm.hpp"
 
+#include "color.h"
 #include "raytracing.h"
 #include "image.h"
 #include "materials.h"
@@ -29,7 +30,7 @@ public:
     glm::vec3 SampleColor(const Ray& ray);
 private:
     std::string filepath;
-    std::vector<uint8_t> image;
+    std::vector<float> image;
     int width;
     int height;
     int nChannels;

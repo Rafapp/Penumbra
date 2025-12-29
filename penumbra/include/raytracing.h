@@ -22,10 +22,10 @@ struct Ray{
 };
 
 struct HitInfo{
-    float t;
-    glm::vec3 p;
-    glm::vec3 n;
-    bool front;
+    float t = FLT_MAX;
+    glm::vec3 p = glm::vec3(0.0f);
+    glm::vec3 n = glm::vec3(0.0f);
+    bool front = false;
     int materialId = -1;
     int areaLightId = -1;
     AreaLight* areaLight = nullptr;
