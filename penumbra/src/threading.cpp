@@ -96,9 +96,8 @@ void RenderThreadPool::RenderWorker(std::function<void(int, int)> render) {
     {
         std::lock_guard<std::mutex> lock(printMutex);
         int currenttotal = ++activeThreads;
-        // std::cout << "dispatching thread pid " << std::this_thread::get_id() 
-                //   << ", total: " << currenttotal << std::endl;
     }
+
     int idx;
     while (!stop && (idx = tiles.fetch_add(1, std::memory_order_relaxed)) < tilesW * tilesH) {
         std::vector<int>& pixels = grid[idx];
@@ -108,13 +107,13 @@ void RenderThreadPool::RenderWorker(std::function<void(int, int)> render) {
             render(u, v);
         }
     }
+
     {
         std::lock_guard<std::mutex> lock(printMutex);
         int currenttotal = --activeThreads;
-        // std::cout << "thread finished pid " << std::this_thread::get_id() 
-                //   << ", total: " << currenttotal << std::endl;
         if(currenttotal == 0){
             PrintStats();
+            frameFinished = true;
         }
     }
 }
@@ -216,6 +215,7 @@ void RenderThreadPool::Start(std::function<void(int, int)> render) {
 
 	std::cout << "Rendering with " << nThreads - 1 << " threads ..." << std::endl;
     stop = false;
+    frameFinished = false;
 
     for (int i = 0; i < nThreads - 1; i++) {
         workers.emplace_back(&RenderThreadPool::RenderWorker, this, render);

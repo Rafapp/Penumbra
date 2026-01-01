@@ -33,6 +33,7 @@ public:
     void Reset();
     void PrintStats();
     std::chrono::steady_clock::time_point startTime;
+    std::atomic<bool> frameFinished;
 
 private:
     void RenderWorker(std::function<void(int, int)> render);

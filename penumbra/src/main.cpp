@@ -3,9 +3,8 @@
 
 int main() {
 	// Load PBRT scene
-
-	// TODO: Move to GUI, load default scene otherwise
 	// std::string sceneFilename = "./resources/scenes/cornell.pbrt";
+    // TODO: Better scene file pipeline
 	std::string sceneFilename = "./resources/scenes/envmap.pbrt";
 	Renderer renderer;
 	renderer.LoadScene(sceneFilename);

@@ -7,6 +7,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+// NOTE: Defaults considered
 struct RenderSettings {
     // Rendering
     int width = 960;
@@ -14,6 +15,13 @@ struct RenderSettings {
     int spp = 1;
     bool indirect = true;
     bool mis = true;
+    char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/envmap.pbrt";
+    char outPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
+    char imgName[256] = "out.png";
+
+    // Animation 
+    char animPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap_anim";
+    char saveAnimPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images/envmap_anim";
 
     // Color
 	bool gammaCorrect = true;
@@ -39,13 +47,16 @@ public:
     void SetSaveCallback(std::function<void()> callback) {
         saveCallback = callback;
     }
-
+    void SetRenderAnimCallback(std::function<void()> callback) {
+        renderAnimCallback = callback;
+    }
 
     RenderSettings GetRenderSettings() { return renderSettings; }
 
 private:
     std::function<void()> renderCallback;
 	std::function<void()> saveCallback;
+    std::function<void()> renderAnimCallback;
     GLFWwindow* m_window;
     ImFont* font;
 	RenderSettings renderSettings;

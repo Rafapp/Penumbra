@@ -96,12 +96,19 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     // GUI
     gui = std::make_unique<GUI>(window);
     Renderer* r = renderer;
-    gui->SetRenderCallback([r]() {
+    gui->SetRenderCallback([this, r]() {
+        // TODO: Better scene file pipeline
+        auto rs = gui->GetRenderSettings();
+        strncpy(r->scenePath, rs.scenePath, sizeof(r->scenePath) - 1);
+        r->scenePath[sizeof(r->scenePath) - 1] = '\0';
         r->BeginRender();
     });
-    gui->SetSaveCallback([r]() {
+    gui->SetSaveCallback([this, r]() {
         r->SaveImage();
 	});
+    gui->SetRenderAnimCallback([r]() {
+        std::thread([r]() { r->RenderAnimation(); }).detach();
+    });
     renderer->SetGUI(gui.get());
 	auto rs = gui->GetRenderSettings();
     viewportRenderWidth = rs.width;

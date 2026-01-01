@@ -87,6 +87,12 @@ void GUI::Render() {
 
             // Rendering 
             if (ImGui::CollapsingHeader("Rendering")) {
+                ImGui::Text("Scene Path");
+                ImGui::InputText("##ScenePath", renderSettings.scenePath, IM_ARRAYSIZE(renderSettings.scenePath));
+                ImGui::Text("Image Name");
+                ImGui::InputText("##ImageName", renderSettings.imgName, IM_ARRAYSIZE(renderSettings.imgName));
+                ImGui::Text("Out Path");
+                ImGui::InputText("##OutPath", renderSettings.outPath, IM_ARRAYSIZE(renderSettings.outPath));
                 ImGui::Text("Samples per Pixel");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::InputInt("##1", &renderSettings.spp, 0, 0);
@@ -96,6 +102,24 @@ void GUI::Render() {
                 ImGui::Text("MIS");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::Checkbox("##3", &renderSettings.mis);
+            }
+
+            // Animation
+            if (ImGui::CollapsingHeader("Animation")) {
+                ImGui::Text("Anim Files Path");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::InputText("##4", renderSettings.animPath, IM_ARRAYSIZE(renderSettings.animPath));
+
+                ImGui::Text("Anim Out Path");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::InputText("##5", renderSettings.saveAnimPath, IM_ARRAYSIZE(renderSettings.saveAnimPath));
+
+                ImGui::SetNextItemWidth(150.0f);
+                if (ImGui::Button("Render animation", ImVec2(panelWidth - 10.0f, 40.0f))) {
+                    if (renderAnimCallback) {
+                        renderAnimCallback();
+                    }
+                }
             }
 
             // Color

@@ -41,6 +41,7 @@ public:
     bool TraceRay(const Ray& ray, HitInfo& hit) const;
     bool Occluded(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
     glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput = glm::vec3(1.0f));
+    void RenderAnimation();
     void BeginRender();
     void StopRender();
     bool LoadScene(const std::string& filename);
@@ -50,20 +51,20 @@ public:
     void SetRenderHeight(int h) { renderHeight = h; }
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
     void SetGUI(GUI* guiPtr) { gui = guiPtr; }
-	void SaveImage();
+	bool SaveImage();
     void PrintStats();
+    char scenePath[256] = "";
 
 private:
     BVH* bvh = nullptr;
     EnvironmentMap envMap;
-    std::string sceneFilename;
     std::vector<uint8_t> renderBuffer;
     std::unique_ptr<Scene> scene;
     minipbrt::Scene* pbrtScene = nullptr;
     std::unique_ptr<RenderThreadPool> threadPool;
 
 
-    // --- GUI Variables ---
+    // --- GUI Variables (defaults not considered) ---
 
     // Rendering
     GUI* gui = nullptr;
@@ -72,11 +73,17 @@ private:
     int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
+    char imgOutPath[256] = "";
+    char imgName[256] = "";
 
     // Color
-    bool gammaCorrect;
-    bool tonemap;
-    float exposureBias;
+    bool gammaCorrect = false;
+    bool tonemap = false;
+    float exposureBias = 0.0f;
+
+    // Animation
+    char animPath[256] = "";
+    char animSavePath[256] = "";
 
     void ConvertPbrtScene();
 };

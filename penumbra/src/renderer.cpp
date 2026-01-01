@@ -119,111 +119,150 @@ std::cout
     std::cout << c(LINE) << "  ────────────────────────────────────────────────────" << c(RST) << "\n";
 }
 
-void Renderer::SaveImage()
-{
-    static int imageIndex = 1;
+bool Renderer::SaveImage() {
+    auto rs = gui->GetRenderSettings();
+    strncpy(imgOutPath, rs.outPath, sizeof(imgOutPath) - 1);
+    imgOutPath[sizeof(imgOutPath) - 1] = '\0';
+    strncpy(imgName, rs.imgName, sizeof(imgName) - 1);
+    imgName[sizeof(imgName) - 1] = '\0';
 
-    // ============================
-    // Stereo / anaglyph controls
-    // ============================
-    bool stereo = false;   // set true for anaglyph rendering
-    bool leftEye = false;   // true = left (red), false = right (cyan)
-
-    const int width = renderWidth;
-    const int height = renderHeight;
-    const int nchannels = 3; // RGB
-
-    const char* eyeSuffix = "";
-    if (stereo) {
-        eyeSuffix = leftEye ? "_left" : "_right";
+    if (imgOutPath[0] == '\0' || imgName[0] == '\0') {
+        std::cerr << "SaveImage error: output path or filename not set" << std::endl;
+        return false;
     }
-
-    char filename[512];
-    std::snprintf(
-        filename,
-        sizeof(filename),
-        "/Users/rafa/Documents/Dev/PenumbraDev/images/image%04d%s.png",
-        imageIndex,
-        eyeSuffix
-    );
-
-    // Increment index only once per stereo pair
-    if (!stereo || !leftEye) {
-        imageIndex++;
+    
+    if (renderBuffer.empty()) {
+        std::cerr << "SaveImage error: render buffer is empty" << std::endl;
+        return false;
     }
-
-    OIIO::ImageSpec spec(width, height, nchannels, OIIO::TypeDesc::UINT8);
-
-    auto out = OIIO::ImageOutput::create(filename);
+    
+    bool stereo = false;
+    bool leftEye = false;
+    
+    auto fullPath = (std::filesystem::path(imgOutPath) / imgName).string();
+    
+    OIIO::ImageSpec spec(renderWidth, renderHeight, 3, OIIO::TypeDesc::UINT8);
+    auto out = OIIO::ImageOutput::create(fullPath);
     if (!out) {
-        std::cerr << "OIIO create error: " << OIIO::geterror() << std::endl;
-        return;
+        std::cerr << "SaveImage error (create): " << OIIO::geterror() << std::endl;
+        return false;
     }
-
-    if (!out->open(filename, spec)) {
-        std::cerr << "OIIO open error: " << out->geterror() << std::endl;
-        return;
+    if (!out->open(fullPath, spec)) {
+        std::cerr << "SaveImage error (open): " << out->geterror() << std::endl;
+        return false;
     }
-
+    
     const uint8_t* src = renderBuffer.data();
-
-    // ----------------------------
-    // Non-stereo: write as-is
-    // ----------------------------
+    bool writeSuccess = true;
+    
     if (!stereo) {
-        out->write_image(OIIO::TypeDesc::UINT8, src);
+        writeSuccess = out->write_image(OIIO::TypeDesc::UINT8, src);
+    } else {
+        std::vector<uint8_t> stereoBuffer(renderWidth * renderHeight * 3);
+        for (int i = 0; i < renderWidth * renderHeight; ++i) {
+            uint8_t r = src[3 * i + 0];
+            uint8_t g = src[3 * i + 1];
+            uint8_t b = src[3 * i + 2];
+            
+            if (leftEye) {
+                stereoBuffer[3 * i + 0] = r;
+                stereoBuffer[3 * i + 1] = 0;
+                stereoBuffer[3 * i + 2] = 0;
+            }
+            else {
+                stereoBuffer[3 * i + 0] = 0;
+                stereoBuffer[3 * i + 1] = g;
+                stereoBuffer[3 * i + 2] = b;
+            }
+        }
+        writeSuccess = out->write_image(OIIO::TypeDesc::UINT8, stereoBuffer.data());
+    }
+    
+    if (!writeSuccess) {
+        std::cerr << "SaveImage error (write): " << out->geterror() << std::endl;
         out->close();
-        return;
+        return false;
     }
-
-    // ----------------------------
-    // Stereo anaglyph output
-    // ----------------------------
-    std::vector<uint8_t> stereoBuffer(width * height * 3);
-
-    for (int i = 0; i < width * height; ++i) {
-        uint8_t r = src[3 * i + 0];
-        uint8_t g = src[3 * i + 1];
-        uint8_t b = src[3 * i + 2];
-
-        if (leftEye) {
-            // Left eye → red only
-            stereoBuffer[3 * i + 0] = r;
-            stereoBuffer[3 * i + 1] = 0;
-            stereoBuffer[3 * i + 2] = 0;
-        }
-        else {
-            // Right eye → cyan (green + blue)
-            stereoBuffer[3 * i + 0] = 0;
-            stereoBuffer[3 * i + 1] = g;
-            stereoBuffer[3 * i + 2] = b;
-        }
-    }
-
-    bool ok = out->write_image(
-        OIIO::TypeDesc::UINT8,
-        stereoBuffer.data()
-    );
-
-    if (!ok) {
-        std::cerr << "OIIO write_image error: " << out->geterror() << std::endl;
-    }
-
+    
     out->close();
+    std::cout << "Saved: " << fullPath << std::endl;
+    return true;
 }
 
+// Render all animation frames (.pbrt scenes) in a folder
+void Renderer::RenderAnimation(){
+    auto rs = gui->GetRenderSettings();
+    strncpy(animPath, rs.animPath, sizeof(animPath) - 1);
+    animPath[sizeof(animPath) - 1] = '\0';
+    strncpy(animSavePath, rs.saveAnimPath, sizeof(animSavePath) - 1);
+    animSavePath[sizeof(animSavePath) - 1] = '\0';
+
+    std::vector<std::string> sceneFiles; 
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(animPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".pbrt") {
+            sceneFiles.push_back(entry.path().string());
+        }
+    }
+
+    int ct = sceneFiles.size();
+    if(ct == 0){
+        std::cout << "No PBRT scenes found in path: " << animPath << std::endl;
+        return;
+    }
+
+    std::cout << "Found " << ct << " PBRT scenes in path: " << animPath << std::endl;
+    std::cout << "Rendering animation ..." << std::endl;
+
+    // Sort frame files numerically
+    std::sort(sceneFiles.begin(), sceneFiles.end(), [](const std::string& a, const std::string& b) {
+        int numA = std::stoi(std::filesystem::path(a).stem().string());
+        int numB = std::stoi(std::filesystem::path(b).stem().string());
+        return numA < numB;
+    });
+
+    // Render all frames
+    int i = 1;
+    for (const auto& sceneFile : sceneFiles) {
+        std::cout << "Rendering frame: " << i << " out of: " << ct << std::endl;
+        strncpy(scenePath, sceneFile.c_str(), sizeof(scenePath) - 1);
+        scenePath[sizeof(scenePath) - 1] = '\0';
+        BeginRender();
+        threadPool->frameFinished = false;
+        while(!threadPool->frameFinished){
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        std::cout << "Finished rendering frame: " << i << std::endl;
+
+        // Update filename and path
+        std::string fName = std::to_string(i) + ".png";
+        strncpy(imgName, fName.c_str(), sizeof(imgName) - 1);
+        imgName[sizeof(imgName) - 1] = '\0';
+        strncpy(imgOutPath, animSavePath, sizeof(imgOutPath) - 1);
+        imgOutPath[sizeof(imgOutPath) - 1] = '\0';
+
+        // Save frame
+        std::cout << "Saving image ..." << std::endl;
+        if(SaveImage()){
+            std::cout << "Saved image " << fName << " successfully." << std::endl;
+        } else {
+            std::cout << "Failed to save image " << fName << "." << std::endl;
+            return;
+        }
+        std::cout << std::endl;
+        i++;
+    }
+}
 
 void Renderer::BeginRender() {
     if(threadPool) threadPool->Stop();
     std::cout << "Starting render ..." << std::endl;
+    auto rs = gui->GetRenderSettings();
     
     // Reload scene
-    if (!LoadScene(sceneFilename)) {
+    if (!LoadScene(scenePath)) {
         std::cerr << "Failed to reload scene" << std::endl;
         return;
     }
-
-    auto rs = gui->GetRenderSettings();
     renderWidth = rs.width;
     renderHeight = rs.height;
     spp = rs.spp;
@@ -491,10 +530,12 @@ void Renderer::RenderPixel(int u, int v) {
 }
 
 bool Renderer::LoadScene(const std::string& filename) {
-	sceneFilename = filename;
+    // TODO: Better scene file pipeline
+    strncpy(scenePath, filename.c_str(), sizeof(scenePath) - 1);
+    scenePath[sizeof(scenePath) - 1] = '\0';
 	PbrtLoader pbrtLoader;
-	if(!pbrtLoader.LoadScene(filename)) {
-		std::cerr << "Error loading PBRT scene from file: " << filename << std::endl;
+	if(!pbrtLoader.LoadScene(scenePath)) {
+		std::cerr << "Error loading PBRT scene from file: " << scenePath << std::endl;
 		return false;
 	}
 	return SetPbrtScene(pbrtLoader.GetScene());
