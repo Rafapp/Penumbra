@@ -11,5 +11,20 @@
 #endif
 
 #include "glm/glm.hpp"
-#include "materials.h"
 #include "sampling.h"
+#include "image.h"
+
+class Texture{
+public:
+    Texture();
+    ~Texture();
+    bool Load(const std::string& path);
+    glm::vec3 Sample(const glm::vec2& uv) const;
+
+private:
+    std::string path;
+    std::vector<float> pixels;
+    int xres = 0;
+    int yres = 0;
+    int nchannels = 0;
+};

@@ -92,7 +92,7 @@ void GUI::Render() {
                 ImGui::Text("Image Name");
                 ImGui::InputText("##ImageName", renderSettings.imgName, IM_ARRAYSIZE(renderSettings.imgName));
                 ImGui::Text("Out Path");
-                ImGui::InputText("##OutPath", renderSettings.outPath, IM_ARRAYSIZE(renderSettings.outPath));
+                ImGui::InputText("##OutPath", renderSettings.imgOutPath, IM_ARRAYSIZE(renderSettings.imgOutPath));
                 ImGui::Text("Samples per Pixel");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::InputInt("##1", &renderSettings.spp, 0, 0);

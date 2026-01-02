@@ -14,6 +14,7 @@ glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
             m[c][r] = t.start[r][c];
     return m;
 }
+
 // TODO: Instancing to reduce duplicate data in meshes
 // === Scene conversion ===
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
@@ -35,7 +36,7 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
 
     // Shapes (third)
     for (auto pbrtShape : pbrtScene->shapes) {
-        Shape* shape = ConvertShape(pbrtShape);
+        Shape* shape = ConvertShape(pbrtShape, scene);
         if (shape) {
             scene.shapes.push_back(shape);
             uint32_t lightIdx = pbrtShape->areaLight;
@@ -119,7 +120,7 @@ Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
     return material;
 }
 
-Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape) {
+Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene) {
     Shape* shape = nullptr;
     
     if (pbrtShape->type() == minipbrt::ShapeType::Sphere) {
@@ -128,7 +129,7 @@ Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape) {
     } 
     else if (pbrtShape->type() == minipbrt::ShapeType::PLYMesh) {
         auto plyMesh = static_cast<minipbrt::PLYMesh*>(pbrtShape);
-        shape = new TriangleMesh(plyMesh);
+        shape = new TriangleMesh(plyMesh, scene);
     }
     else {
         std::cerr << "Unsupported shape type" << std::endl;

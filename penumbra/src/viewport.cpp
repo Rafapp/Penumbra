@@ -104,6 +104,11 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
         r->BeginRender();
     });
     gui->SetSaveCallback([this, r]() {
+        auto rs = gui->GetRenderSettings();
+        strncpy(r->imgOutPath, rs.imgOutPath, sizeof(r->imgOutPath) - 1);
+        r->imgOutPath[sizeof(r->imgOutPath) - 1] = '\0';
+        strncpy(r->imgName, rs.imgName, sizeof(r->imgName) - 1);
+        r->imgName[sizeof(r->imgName) - 1] = '\0';
         r->SaveImage();
 	});
     gui->SetRenderAnimCallback([r]() {

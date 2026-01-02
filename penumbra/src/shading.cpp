@@ -245,9 +245,12 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
     bool isTransmission = (nDotWi * nDotWo < 0.0f);
     if (!isReflection && !isTransmission) return glm::vec3(0);
 
+    glm::vec3 albedo = disney->GetAlbedo(hit.uv);
+    float roughness = disney->GetRoughness(hit.uv);
+    float metallic = disney->GetMetallic(hit.uv);
+
     // BSSRDF
     if (isReflection) {
-		float r = disney->roughness;
 		nDotWi = glm::max(0.0f, nDotWi);
 		nDotWo = glm::max(0.0f, nDotWo);
 		glm::vec3 h = glm::normalize(wi + wo);
@@ -256,19 +259,19 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
 
 		// Diffuse | TODO: Integrate subsurface scattering with dipole model
 		float cos2 = hDotWo * hDotWo;
-		float fd90 = 0.5f + 2.0f * r * cos2;
+		float fd90 = 0.5f + 2.0f * roughness * cos2;
 		float fd = (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWi), 5))) * 
 				   (1.0f + (fd90 - 1.0f) * (glm::pow((1.0f - nDotWo), 5)));
-		glm::vec3 diffuse = disney->albedo * float(M_1_PI) * (1.0f - disney->metallic) * fd;
+		glm::vec3 diffuse = albedo * float(M_1_PI) * (1.0f - metallic) * fd;
 
 		// Specular
-		glm::vec3 Fo = glm::mix(glm::vec3(0.04f), disney->albedo, disney->metallic);
+		glm::vec3 Fo = glm::mix(glm::vec3(0.04f), albedo, metallic);
 		glm::vec3 F = Fo + (1.0f - Fo) * glm::pow(1.0f - hDotWo, 5.0f);
-		float K = glm::pow((r + 1.0f),2) / 8.0f;
+		float K = glm::pow((roughness + 1.0f),2) / 8.0f;
 		float Gwi = nDotWi / (nDotWi * (1.0f - K) + K);
 		float Gwo = nDotWo / (nDotWo * (1.0f - K) + K);
 		float G = Gwi * Gwo;
-		float D = DGGX(r, h, n);
+		float D = DGGX(roughness, h, n);
 		glm::vec3 specular = (F * G * D) / (4.0f * nDotWi * nDotWo);
 
         return diffuse + specular;
@@ -276,15 +279,14 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
 
     // BTDF
     else if (isTransmission) {
-		float r = disney->roughness;
 		glm::vec3 h = glm::normalize(etaI * wi + etaO * wo);
         if (glm::dot(h, n) < 0.0f) h = -h;
 		float hDotWi = glm::abs(glm::dot(h, wi));
 		float hDotWo = glm::abs(glm::dot(h, wo));
 		nDotWi = glm::abs(nDotWi);
 		nDotWo = glm::abs(nDotWo);
-		float D = DGGX(r, h, n);
-		float K = glm::pow((r + 1.0f), 2) / 8.0f;
+		float D = DGGX(roughness, h, n);
+		float K = glm::pow((roughness + 1.0f), 2) / 8.0f;
 		float Gwi = nDotWi / (nDotWi * (1.0f - K) + K);
 		float Gwo = nDotWo / (nDotWo * (1.0f - K) + K);
 		float G = Gwi * Gwo;
@@ -292,7 +294,7 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
 		float F = ShlickFresnel(hDotWi, etaI / etaO);
         float denom = etaI * hDotWi + etaO * hDotWo;
         float factor = (etaO * etaO) * hDotWi * hDotWo / (nDotWi * nDotWo * denom * denom);
-        return disney->albedo * (1.0f - F) * D * G * factor;
+        return albedo * (1.0f - F) * D * G * factor;
     }
 
     // Invalid

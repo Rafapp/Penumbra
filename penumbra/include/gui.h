@@ -16,7 +16,7 @@ struct RenderSettings {
     bool indirect = true;
     bool mis = true;
     char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/envmap.pbrt";
-    char outPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
+    char imgOutPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
     char imgName[256] = "out.png";
 
     // Animation 

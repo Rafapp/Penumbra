@@ -62,10 +62,11 @@ private:
 
 class TriangleMesh : public Shape {
 public:
-    TriangleMesh(minipbrt::PLYMesh* plyMesh);
+    TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene);
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
     tinybvh::BVH_SoA bvh;
     bool bvhReady = false;
+    std::vector<uint32_t>* triMaterialIndices = nullptr;
     
 private:
     std::vector<glm::vec4>* vertices = nullptr;
@@ -73,11 +74,12 @@ private:
     std::vector<glm::uvec4>* triangles = nullptr;
     uint32_t nTris = 0;
     std::vector<glm::vec3>* normals = nullptr;
+    std::vector<glm::vec2>* uvs = nullptr;
     std::vector<uint32_t> bvhIndices;
     std::vector<glm::vec4> bvhTriSoup;
 
     
-    bool LoadMeshWithAssimp(const std::string& filename);
+    bool LoadMeshWithAssimp(const std::string& filename, Scene& scene);
     bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
     bool BuildBVH();
 };

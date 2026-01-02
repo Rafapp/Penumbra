@@ -53,7 +53,12 @@ public:
     void SetGUI(GUI* guiPtr) { gui = guiPtr; }
 	bool SaveImage();
     void PrintStats();
+
+
+    // --- GUI Variables (defaults not considered) ---
     char scenePath[256] = "";
+    char imgOutPath[256] = "";
+    char imgName[256] = "";
 
 private:
     BVH* bvh = nullptr;
@@ -73,8 +78,6 @@ private:
     int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
-    char imgOutPath[256] = "";
-    char imgName[256] = "";
 
     // Color
     bool gammaCorrect = false;

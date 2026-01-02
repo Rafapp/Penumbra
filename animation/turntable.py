@@ -6,7 +6,7 @@ height = 20
 radius = 100
 
 # === Animation ===
-frames = 48 
+frames = 96 
 scene_path = '/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap.pbrt'
 output_dir = os.path.expanduser('~/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap_anim')
 

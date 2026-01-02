@@ -106,6 +106,12 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
     glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
     glm::vec3 nW = glm::normalize(normalMatrix * nObj);
 
+    // Interpolate UV coordinates
+    if(uvs){
+        hit.uv = (1.0f - u - v) * (*uvs)[triIdx.x] + u * (*uvs)[triIdx.y] + v * (*uvs)[triIdx.z];
+    } else hit.uv = glm::vec2(0.0f);
+
+    hit.triangleIndex = i;
     hit.t = tWorld;
     hit.p = pW;
     hit.n = nW;
@@ -140,7 +146,7 @@ Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
     }
 }
 
-TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
+TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
     if (!plyMesh) return;
     
     // Load mesh via Assimp
@@ -150,7 +156,7 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
         // Minipbrt works from the scenes dir, so we need to clean the path
         meshPath = meshPath.substr(pos);
     }
-    if (!LoadMeshWithAssimp(meshPath)) {
+    if (!LoadMeshWithAssimp(meshPath, scene)) {
         std::cerr << "Failed to load mesh: " << meshPath << std::endl;
         return;
     }
@@ -171,25 +177,25 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh) {
 }
 
 // === Mesh loading with Assimp ===
-bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
+bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene){
     Assimp::Importer importer;
 
     // NOTE: Assuming flipped winding order for PBRT
-    const aiScene* scene = importer.ReadFile(filename,
+    const aiScene* aiScene = importer.ReadFile(filename,
         aiProcess_Triangulate | 
         aiProcess_GenNormals | 
         aiProcess_FlipWindingOrder);
     
-    if (!scene || scene->mNumMeshes == 0) {
+    if (!aiScene || aiScene->mNumMeshes == 0) {
         std::cerr << "Failed to load mesh: " << filename << std::endl;
         std::cerr << "Error: " << importer.GetErrorString() << std::endl;
         return false;
     }
     
     // Load first mesh
-    const aiMesh* mesh = scene->mMeshes[0];
+    const aiMesh* mesh = aiScene->mMeshes[0];
     
-    // Copy vertices
+    // Load vertices
     nVerts = mesh->mNumVertices;
     vertices = new std::vector<glm::vec4>(nVerts);
     for (uint32_t i = 0; i < nVerts; i++) {
@@ -199,7 +205,7 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
                                 0.0f);
     }
 
-    // Copy triangle indices
+    // Load triangle indices
     nTris = mesh->mNumFaces;
     triangles = new std::vector<glm::uvec4>(nTris);
     for (uint32_t i = 0; i < nTris; i++) {
@@ -207,7 +213,7 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
         (*triangles)[i] = glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0u);
     }
     
-    // Copy normals
+    // Load normals
     if (mesh->HasNormals()) {
         normals = new std::vector<glm::vec3>(nVerts);
         for (size_t i = 0; i < nVerts; i++) {
@@ -218,6 +224,28 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename){
     } else {
         std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
     }
+
+    // Load UV's
+    if(mesh->HasTextureCoords(0)){
+        uvs = new std::vector<glm::vec2>(nVerts);
+        for(size_t i = 0; i < nVerts; i++){
+            (*uvs)[i] = glm::vec2(mesh->mTextureCoords[0][i].x,
+                                  mesh->mTextureCoords[0][i].y);
+        }
+    } else {
+        std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
+    }
+
+    // Load triangle material indices
+    triMaterialIndices = new std::vector<uint32_t>(nTris);
+    for (uint32_t i = 0; i < nTris; i++) {
+        (*triMaterialIndices)[i] = mesh->mMaterialIndex;
+    }
+
+    // Load mesh materials (with texture data), add to scene 
+    // TODO: Disney BRDF materials assumed (for now)
+    aiMaterial* aiMat = aiScene->mMaterials[mesh->mMaterialIndex];
+    aiString texPath;
 
     BuildBVH();
     bvhReady = true;

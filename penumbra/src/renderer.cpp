@@ -120,12 +120,6 @@ std::cout
 }
 
 bool Renderer::SaveImage() {
-    auto rs = gui->GetRenderSettings();
-    strncpy(imgOutPath, rs.outPath, sizeof(imgOutPath) - 1);
-    imgOutPath[sizeof(imgOutPath) - 1] = '\0';
-    strncpy(imgName, rs.imgName, sizeof(imgName) - 1);
-    imgName[sizeof(imgName) - 1] = '\0';
-
     if (imgOutPath[0] == '\0' || imgName[0] == '\0') {
         std::cerr << "SaveImage error: output path or filename not set" << std::endl;
         return false;
@@ -239,6 +233,8 @@ void Renderer::RenderAnimation(){
         imgName[sizeof(imgName) - 1] = '\0';
         strncpy(imgOutPath, animSavePath, sizeof(imgOutPath) - 1);
         imgOutPath[sizeof(imgOutPath) - 1] = '\0';
+        std::cout << "imgName is: " << imgName << std::endl;
+        std::cout << "imgOutPath is: " << imgOutPath << std::endl;
 
         // Save frame
         std::cout << "Saving image ..." << std::endl;
@@ -311,7 +307,17 @@ bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
             if (tmpHit.t < closest) {
                 closest = tmpHit.t;
                 tmpHit.shape = shape;
-                tmpHit.material = shape->material;
+
+                // Material lookup by triangle index
+                if (auto mesh = dynamic_cast<TriangleMesh*>(shape)) {
+                    if (mesh->triMaterialIndices && tmpHit.triangleIndex < mesh->triMaterialIndices->size()) {
+                        uint32_t matIdx = (*mesh->triMaterialIndices)[tmpHit.triangleIndex];
+                        tmpHit.material = scene->materials[matIdx];
+                    }
+                } else {
+                    tmpHit.material = shape->material;
+                }
+
                 tmpHit.areaLight = shape->areaLight;
                 hit = tmpHit;
                 hitAny = true;
