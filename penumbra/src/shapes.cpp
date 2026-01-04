@@ -2,6 +2,9 @@
 
 #include <filesystem>
 
+#include "materials.h"
+#include "scene.h"
+
 #define SPHERE_EPS 1e-8f
 #define TRI_EPS 1e-6f
 
@@ -51,78 +54,91 @@ bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
 }
 
 bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
-    if (!bvhReady) return false;
+    // TODO: TLAS
+    bool hitAny = false;
+    float closest = FLT_MAX;
 
-    float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
-    if (!(s > 0.0f)) return false;
+    unsigned int nMeshes = meshes.size();
+    for(int i = 0; i < nMeshes; i++){
+        SubMesh* mesh = meshes[i];
+        if (!mesh->bvhReady) continue;
 
-    float tMaxObj = hit.t / s;
-    if (!(tMaxObj > 0.0f)) tMaxObj = FLT_MAX;
+        float s = glm::length(glm::vec3(transform * glm::vec4(r.d, 0.0f)));
+        if (!(s > 0.0f)) continue;
 
-    tinybvh::Ray ray(r.o, r.d, tMaxObj);
-    bvh.Intersect(ray);
+        float tMaxObj = hit.t / s;
+        if (!(tMaxObj > 0.0f)) tMaxObj = FLT_MAX;
 
-    if (ray.hit.t >= tMaxObj) return false;
+        tinybvh::Ray ray(r.o, r.d, tMaxObj);
+        mesh->bvh.Intersect(ray);
 
-    uint32_t i = ray.hit.prim;
-    if (i >= nTris) return false;
+        if (ray.hit.t >= tMaxObj) continue;
 
-    const glm::vec3 v0 = glm::vec3(bvhTriSoup[3ull * i + 0]);
-    const glm::vec3 v1 = glm::vec3(bvhTriSoup[3ull * i + 1]);
-    const glm::vec3 v2 = glm::vec3(bvhTriSoup[3ull * i + 2]);
+        uint32_t idx = ray.hit.prim;
+        if (idx >= mesh->nTris) continue;
 
-    glm::vec3 e1 = v1 - v0;
-    glm::vec3 e2 = v2 - v0;
+        const glm::vec3 v0 = glm::vec3(mesh->bvhTriSoup[3ull * idx + 0]);
+        const glm::vec3 v1 = glm::vec3(mesh->bvhTriSoup[3ull * idx + 1]);
+        const glm::vec3 v2 = glm::vec3(mesh->bvhTriSoup[3ull * idx + 2]);
 
-    glm::vec3 pvec = glm::cross(r.d, e2);
-    float det = glm::dot(e1, pvec);
-    if (fabs(det) < TRI_EPS) return false;
+        glm::vec3 e1 = v1 - v0;
+        glm::vec3 e2 = v2 - v0;
 
-    float invDet = 1.0f / det;
-    glm::vec3 tvec = r.o - v0;
+        glm::vec3 pvec = glm::cross(r.d, e2);
+        float det = glm::dot(e1, pvec);
+        if (fabs(det) < TRI_EPS) continue;
 
-    float u = invDet * glm::dot(tvec, pvec);
-    if (u < 0.0f || u > 1.0f) return false;
+        float invDet = 1.0f / det;
+        glm::vec3 tvec = r.o - v0;
 
-    glm::vec3 qvec = glm::cross(tvec, e1);
-    float v = invDet * glm::dot(r.d, qvec);
-    if (v < 0.0f || u + v > 1.0f) return false;
+        float u = invDet * glm::dot(tvec, pvec);
+        if (u < 0.0f || u > 1.0f) continue;
 
-    float tObj = invDet * glm::dot(e2, qvec);
-    if (tObj < TRI_EPS || tObj >= tMaxObj) return false;
+        glm::vec3 qvec = glm::cross(tvec, e1);
+        float v = invDet * glm::dot(r.d, qvec);
+        if (v < 0.0f || u + v > 1.0f) continue;
 
-    float tWorld = tObj * s;
-    if (tWorld >= hit.t) return false;
+        float tObj = invDet * glm::dot(e2, qvec);
+        if (tObj < TRI_EPS || tObj >= tMaxObj) continue;
 
-    glm::vec3 pObj = r.At(tObj);
-    glm::vec3 pW = glm::vec3(transform * glm::vec4(pObj, 1.0f));
+        float tWorld = tObj * s;
+        if (tWorld >= hit.t) continue;
 
-    // Compute world-space normal
-    const glm::uvec4& triIdx = (*triangles)[i];
-    glm::vec3 n0 = (*normals)[triIdx.x];
-    glm::vec3 n1 = (*normals)[triIdx.y];
-    glm::vec3 n2 = (*normals)[triIdx.z];
-    glm::vec3 nObj = glm::normalize((1.0f - u - v) * n0 + u * n1 + v * n2);
-    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
-    glm::vec3 nW = glm::normalize(normalMatrix * nObj);
+        if(tWorld < closest){
+            glm::vec3 pObj = r.At(tObj);
+            glm::vec3 pW = glm::vec3(transform * glm::vec4(pObj, 1.0f));
 
-    // Interpolate UV coordinates
-    if(uvs){
-        hit.uv = (1.0f - u - v) * (*uvs)[triIdx.x] + u * (*uvs)[triIdx.y] + v * (*uvs)[triIdx.z];
-    } else hit.uv = glm::vec2(0.0f);
+            // Compute world-space normal
+            const glm::uvec4& triIdx = (*mesh->triangles)[idx];
+            glm::vec3 n0 = (*mesh->normals)[triIdx.x];
+            glm::vec3 n1 = (*mesh->normals)[triIdx.y];
+            glm::vec3 n2 = (*mesh->normals)[triIdx.z];
+            glm::vec3 nObj = glm::normalize((1.0f - u - v) * n0 + u * n1 + v * n2);
+            glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+            glm::vec3 nW = glm::normalize(normalMatrix * nObj);
 
-    hit.triangleIndex = i;
-    hit.t = tWorld;
-    hit.p = pW;
-    hit.n = nW;
-    hit.front = glm::dot(glm::vec3(transform * glm::vec4(r.d, 0.0f)), nW) < 0.0f;
-    hit.materialId = materialId;
-    hit.areaLightId = areaLightId;
-    hit.shape = this;
-    hit.material = material;
-    hit.areaLight = areaLight;
+            // Interpolate UV coordinates
+            if(mesh->uvs){
+                hit.uv = (1.0f - u - v) * (*mesh->uvs)[triIdx.x] + 
+                        u * (*mesh->uvs)[triIdx.y] + 
+                        v * (*mesh->uvs)[triIdx.z];
+            } else hit.uv = glm::vec2(0.0f);
 
-    return true;
+            hit.triangleIndex = idx;
+            hit.t = tWorld;
+            hit.p = pW;
+            hit.n = nW;
+            hit.front = glm::dot(glm::vec3(transform * glm::vec4(r.d, 0.0f)), nW) < 0.0f;
+            hit.materialId = materialId;
+            hit.areaLightId = areaLightId;
+            hit.shape = this;
+            hit.material = material;
+            hit.areaLight = areaLight;
+            hit.submeshIndex = i;
+            hitAny = true;
+        }
+    }
+    return hitAny;
 }
 
 
@@ -176,6 +192,29 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
     // }
 }
 
+TriangleMesh::~TriangleMesh() {
+    for (auto mesh : meshes) {
+        delete mesh;
+    }
+}
+
+// === Texture loading with Assimp ===
+Texture* TriangleMesh::LoadTextureWithAssimp(aiMaterial* aiMat, aiTextureType type, const char* meshName){
+        aiString texPath;
+        aiReturn texReturn;
+        texReturn = aiMat->GetTexture(type, 0, &texPath);
+        if(texReturn != aiReturn_SUCCESS){
+            // TODO: Proper logging system (with pretty colors!)
+            return nullptr;
+        }
+        Texture* texture = new Texture();
+        if(texture->Load(texPath.C_Str())){
+            return texture;
+        } else {
+            return nullptr;
+        }
+}
+
 // === Mesh loading with Assimp ===
 bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene){
     Assimp::Importer importer;
@@ -186,74 +225,85 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene)
         aiProcess_GenNormals | 
         aiProcess_FlipWindingOrder);
     
-    if (!aiScene || aiScene->mNumMeshes == 0) {
+    unsigned int numMeshes = aiScene->mNumMeshes;
+    if (!aiScene || numMeshes == 0) {
         std::cerr << "Failed to load mesh: " << filename << std::endl;
         std::cerr << "Error: " << importer.GetErrorString() << std::endl;
         return false;
     }
     
     // Load first mesh
-    const aiMesh* mesh = aiScene->mMeshes[0];
-    
-    // Load vertices
-    nVerts = mesh->mNumVertices;
-    vertices = new std::vector<glm::vec4>(nVerts);
-    for (uint32_t i = 0; i < nVerts; i++) {
-        (*vertices)[i] = glm::vec4(mesh->mVertices[i].x,
-                                mesh->mVertices[i].y,
-                                mesh->mVertices[i].z,
-                                0.0f);
-    }
-
-    // Load triangle indices
-    nTris = mesh->mNumFaces;
-    triangles = new std::vector<glm::uvec4>(nTris);
-    for (uint32_t i = 0; i < nTris; i++) {
-        const aiFace& face = mesh->mFaces[i];
-        (*triangles)[i] = glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0u);
-    }
-    
-    // Load normals
-    if (mesh->HasNormals()) {
-        normals = new std::vector<glm::vec3>(nVerts);
-        for (size_t i = 0; i < nVerts; i++) {
-            (*normals)[i] = glm::vec3(mesh->mNormals[i].x,
-                                      mesh->mNormals[i].y,
-                                      mesh->mNormals[i].z);
+    // TODO: Support submeshes
+    for(int i = 0; i < numMeshes; i++){
+        const aiMesh* aiMesh = aiScene->mMeshes[i];
+        SubMesh* mesh = new SubMesh();
+        
+        // Load vertices
+        mesh->nVerts = aiMesh->mNumVertices;
+        mesh->vertices = new std::vector<glm::vec4>(mesh->nVerts);
+        for (uint32_t i = 0; i < mesh->nVerts; i++) {
+            (*mesh->vertices)[i] = glm::vec4(aiMesh->mVertices[i].x,
+                                    aiMesh->mVertices[i].y,
+                                    aiMesh->mVertices[i].z,
+                                    0.0f);
         }
-    } else {
-        std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
-    }
 
-    // Load UV's
-    if(mesh->HasTextureCoords(0)){
-        uvs = new std::vector<glm::vec2>(nVerts);
-        for(size_t i = 0; i < nVerts; i++){
-            (*uvs)[i] = glm::vec2(mesh->mTextureCoords[0][i].x,
-                                  mesh->mTextureCoords[0][i].y);
+        // Load triangle indices
+        mesh->nTris = aiMesh->mNumFaces;
+        mesh->triangles = new std::vector<glm::uvec4>(mesh->nTris);
+        for (uint32_t i = 0; i < mesh->nTris; i++) {
+            const aiFace& face = aiMesh->mFaces[i];
+            (*mesh->triangles)[i] = glm::uvec4(face.mIndices[0], face.mIndices[1], face.mIndices[2], 0u);
         }
-    } else {
-        std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
+        
+        // Load normals
+        if (aiMesh->HasNormals()) {
+            mesh->normals = new std::vector<glm::vec3>(mesh->nVerts);
+            for (size_t i = 0; i < mesh->nVerts; i++) {
+                (*mesh->normals)[i] = glm::vec3(aiMesh->mNormals[i].x,
+                                        aiMesh->mNormals[i].y,
+                                        aiMesh->mNormals[i].z);
+            }
+        } else {
+            std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
+        }
+
+        // Load UV's
+        if(aiMesh->HasTextureCoords(0)){
+            mesh->uvs = new std::vector<glm::vec2>(mesh->nVerts);
+            for(size_t i = 0; i < mesh->nVerts; i++){
+                (*mesh->uvs)[i] = glm::vec2(aiMesh->mTextureCoords[0][i].x,
+                                    aiMesh->mTextureCoords[0][i].y);
+            }
+        } else {
+            std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
+        }
+
+        // Load mesh materials (with texture data), add to scene 
+        // TODO: Disney BRDF materials assumed (for now)
+        DisneyMaterial* disneyMtl = new DisneyMaterial(nullptr);
+        aiMaterial* aiMat = aiScene->mMaterials[aiMesh->mMaterialIndex];
+        disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
+        disneyMtl->roughnessTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, aiMesh->mName.C_Str());
+        disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
+        mesh->materialIndex = scene.materials.size();
+        this->material = disneyMtl;
+        scene.materials.push_back(disneyMtl);
+
+        if(mesh->BuildBVH()){
+            mesh->bvhReady = true;
+        } else {
+            std::cout << "ERROR: Could not build BVH for mesh: " << filename << std::endl;
+            return false;
+        }
+
+        meshes.push_back(mesh);
     }
-
-    // Load triangle material indices
-    triMaterialIndices = new std::vector<uint32_t>(nTris);
-    for (uint32_t i = 0; i < nTris; i++) {
-        (*triMaterialIndices)[i] = mesh->mMaterialIndex;
-    }
-
-    // Load mesh materials (with texture data), add to scene 
-    // TODO: Disney BRDF materials assumed (for now)
-    aiMaterial* aiMat = aiScene->mMaterials[mesh->mMaterialIndex];
-    aiString texPath;
-
-    BuildBVH();
-    bvhReady = true;
     return true;
 }
 
 // === BVH Construction ===
-bool TriangleMesh::BuildBVH()
+bool SubMesh::BuildBVH()
 {
     if (!vertices || !triangles) return false;
     if (nVerts == 0 || nTris == 0) return false;

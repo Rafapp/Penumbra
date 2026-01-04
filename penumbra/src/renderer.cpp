@@ -298,26 +298,30 @@ bool Renderer::Occluded(const glm::vec3& p, const glm::vec3& wi, const glm::vec3
 bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
     bool hitAny = false;
     float closest = FLT_MAX;
-    // TODO: Use TLAS (top layer acceleration structure) for faster traversal
+    
     for (Shape* shape : scene->shapes) {
         Ray rObj = ray.Transform(shape->GetInverseTransform());
         HitInfo tmpHit;
         tmpHit.t = closest;
+        
         if (shape->IntersectRay(rObj, tmpHit)) {
             if (tmpHit.t < closest) {
                 closest = tmpHit.t;
                 tmpHit.shape = shape;
-
-                // Material lookup by triangle index
+                
+                // Material lookup by submesh
                 if (auto mesh = dynamic_cast<TriangleMesh*>(shape)) {
-                    if (mesh->triMaterialIndices && tmpHit.triangleIndex < mesh->triMaterialIndices->size()) {
-                        uint32_t matIdx = (*mesh->triMaterialIndices)[tmpHit.triangleIndex];
-                        tmpHit.material = scene->materials[matIdx];
+                    if (tmpHit.submeshIndex < mesh->meshes.size()) {
+                        SubMesh* subMesh = mesh->meshes[tmpHit.submeshIndex];
+                        uint32_t matIdx = subMesh->materialIndex;
+                        if (matIdx < scene->materials.size()) {
+                            tmpHit.material = scene->materials[matIdx];
+                        }
                     }
                 } else {
                     tmpHit.material = shape->material;
                 }
-
+                
                 tmpHit.areaLight = shape->areaLight;
                 hit = tmpHit;
                 hitAny = true;

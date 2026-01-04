@@ -28,6 +28,7 @@ struct HitInfo{
     bool front = false;
     int materialId = -1;
     int areaLightId = -1;
+    uint32_t submeshIndex = 0;
     glm::vec2 uv = glm::vec2(0.0f);
     uint32_t triangleIndex = 0;
     AreaLight* areaLight = nullptr;

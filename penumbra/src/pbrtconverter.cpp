@@ -57,14 +57,10 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     for (auto pbrtShape : pbrtScene->shapes) {
         if (shapeIdx >= scene.shapes.size()) break;
         int mi = pbrtShape->material;
-        if (mi == minipbrt::kInvalidIndex || mi >= (int)scene.materials.size()) {
-            shapeIdx++;
-            continue;
+        if (mi != minipbrt::kInvalidIndex && mi < (int)scene.materials.size()) {
+            Material* m = scene.materials[mi];
+            if (m) scene.shapes[shapeIdx]->material = m;
         }
-        Material* m = scene.materials[mi];
-        if(m->GetType() == minipbrt::MaterialType::Disney) {
-        }
-        if (m) scene.shapes[shapeIdx]->material = m;
         shapeIdx++;
     }
 

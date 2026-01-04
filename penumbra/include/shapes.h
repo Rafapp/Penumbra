@@ -26,6 +26,7 @@ static_assert(sizeof(uint32_t) == 4);
 
 #include "raytracing.h"
 #include "pbrtconverter.h"
+#include "texture.h"
 
 class Shape {
 public:
@@ -60,26 +61,34 @@ private:
     float radius = 1.0f;
 };
 
-class TriangleMesh : public Shape {
-public:
-    TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene);
-    bool IntersectRay(const Ray& r, HitInfo& hit) override;
+struct SubMesh{
     tinybvh::BVH_SoA bvh;
     bool bvhReady = false;
-    std::vector<uint32_t>* triMaterialIndices = nullptr;
-    
-private:
-    std::vector<glm::vec4>* vertices = nullptr;
-    uint32_t nVerts = 0;
-    std::vector<glm::uvec4>* triangles = nullptr;
+
     uint32_t nTris = 0;
+    uint32_t nVerts = 0;
+
+    std::vector<glm::vec4>* vertices = nullptr;
+    std::vector<glm::uvec4>* triangles = nullptr;
     std::vector<glm::vec3>* normals = nullptr;
     std::vector<glm::vec2>* uvs = nullptr;
+
     std::vector<uint32_t> bvhIndices;
     std::vector<glm::vec4> bvhTriSoup;
 
-    
-    bool LoadMeshWithAssimp(const std::string& filename, Scene& scene);
-    bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
+    uint32_t materialIndex = 0;
     bool BuildBVH();
+};
+
+class TriangleMesh : public Shape {
+public:
+    TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene);
+    ~TriangleMesh();
+    bool IntersectRay(const Ray& r, HitInfo& hit) override;
+    std::vector<SubMesh*> meshes;
+    
+private:
+    bool LoadMeshWithAssimp(const std::string& filename, Scene& scene);
+    Texture* LoadTextureWithAssimp(aiMaterial* mat, aiTextureType type, const char* meshName);
+    bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
 };
