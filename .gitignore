@@ -1,5 +1,7 @@
 # Penumbra folders
 /resources
+/images
+/images/**
 
 # CMake generated files and folders
 build/

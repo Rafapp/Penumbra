@@ -20,13 +20,13 @@ glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
 
-    // Materials (first)
+    // 1. PBRT materials 
     for (auto pbrtMat : pbrtScene->materials) {
         Material* material = ConvertMaterial(pbrtMat);
 		scene.materials.push_back(material); 
     }
 
-    // Area Lights (second)
+    // 2. Area Lights
     for (auto pbrtAreaLight : pbrtScene->areaLights) {
         AreaLight* areaLight = ConvertAreaLight(pbrtAreaLight);
         if (areaLight) {
@@ -34,7 +34,7 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         }
     }
 
-    // Shapes (third)
+    // 3. Shapes
     for (auto pbrtShape : pbrtScene->shapes) {
         Shape* shape = ConvertShape(pbrtShape, scene);
         if (shape) {
@@ -52,10 +52,19 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
 		}
     }
 
-    // Assign materials to shapes
+    // 4. Assign materials to shapes
+	// TODO: Pass index to LoadWithAssimp to assign materials directly 
     int shapeIdx = 0;
     for (auto pbrtShape : pbrtScene->shapes) {
         if (shapeIdx >= scene.shapes.size()) break;
+
+        // Skip mesh shapes - they handle materials in LoadMeshWithAssimp
+        if (auto mesh = dynamic_cast<TriangleMesh*>(scene.shapes[shapeIdx])) {
+            shapeIdx++;
+            continue;
+        }
+
+        // Assign PBRT material to non-mesh shapes
         int mi = pbrtShape->material;
         if (mi != minipbrt::kInvalidIndex && mi < (int)scene.materials.size()) {
             Material* m = scene.materials[mi];

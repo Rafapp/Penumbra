@@ -124,7 +124,6 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
                         v * (*mesh->uvs)[triIdx.z];
             } else hit.uv = glm::vec2(0.0f);
 
-            hit.triangleIndex = idx;
             hit.t = tWorld;
             hit.p = pW;
             hit.n = nW;
@@ -134,7 +133,8 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             hit.shape = this;
             hit.material = material;
             hit.areaLight = areaLight;
-            hit.submeshIndex = i;
+            hit.submeshId = i;
+			hit.materialId = mesh->materialIndex;
             hitAny = true;
         }
     }
@@ -165,7 +165,7 @@ Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
 TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
     if (!plyMesh) return;
     
-    // Load mesh via Assimp
+    // Load mesh via Assimp (with its materials)
     std::string meshPath = plyMesh->filename;
     size_t pos = meshPath.find("./resources/meshes/");
     if (pos != std::string::npos) {
@@ -233,7 +233,6 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene)
     }
     
     // Load first mesh
-    // TODO: Support submeshes
     for(int i = 0; i < numMeshes; i++){
         const aiMesh* aiMesh = aiScene->mMeshes[i];
         SubMesh* mesh = new SubMesh();
@@ -279,16 +278,16 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene)
             std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
         }
 
-        // Load mesh materials (with texture data), add to scene 
-        // TODO: Disney BRDF materials assumed (for now)
-        DisneyMaterial* disneyMtl = new DisneyMaterial(nullptr);
+        // TODO: For now, assume first submesh uses first PBRT material, etc.
+        int pbrtMatIdx = i;
         aiMaterial* aiMat = aiScene->mMaterials[aiMesh->mMaterialIndex];
-        disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
-        disneyMtl->roughnessTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, aiMesh->mName.C_Str());
-        disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
-        mesh->materialIndex = scene.materials.size();
-        this->material = disneyMtl;
-        scene.materials.push_back(disneyMtl);
+        if (pbrtMatIdx < (int)scene.materials.size()) {
+            auto disneyMtl = static_cast<DisneyMaterial*>(scene.materials[pbrtMatIdx]);
+            disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
+            disneyMtl->roughnessTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, aiMesh->mName.C_Str());
+            disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
+            mesh->materialIndex = pbrtMatIdx;
+        }
 
         if(mesh->BuildBVH()){
             mesh->bvhReady = true;

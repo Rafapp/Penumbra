@@ -15,13 +15,24 @@ struct RenderSettings {
     int spp = 1;
     bool indirect = true;
     bool mis = true;
-    char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/envmap.pbrt";
-    char imgOutPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
-    char imgName[256] = "out.png";
+    // TODO: Remove this, placeholder for my machines only, or add a file system perhaps
+	#if(WIN32)
+		char scenePath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\resources\\scenes\\envmap.pbrt";
+		char imgOutPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\images\\images";
+		char imgName[256] = "out.png";
 
-    // Animation 
-    char animPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap_anim";
-    char saveAnimPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images/envmap_anim";
+		// Animation 
+		char animPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap";
+		char saveAnimPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\animOut";
+	#else
+		char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/envmap.pbrt";
+		char imgOutPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
+		char imgName[256] = "out.png";
+
+		// Animation 
+		char animPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap_anim";
+		char saveAnimPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images/envmap_anim";
+	#endif
 
     // Color
 	bool gammaCorrect = true;

@@ -60,7 +60,11 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     const float EPS = 1e-4f;
 	const float NEPS = 1.0f - EPS;
 
-    float r = disney->roughness;
+    glm::vec3 albedo = disney->GetAlbedo(hit.uv);
+    float roughness = disney->GetRoughness(hit.uv);
+    float metallic = disney->GetMetallic(hit.uv);
+
+    float r = roughness;
     float r2 = r * r;
 	glm::vec3 n = hit.front ? hit.n : -hit.n;
     glm::vec3 I = -wi;
@@ -70,7 +74,9 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // =================	
     // === (A) Glass ===
     // =================
-    if (disney->metallic < EPS && disney->roughness < EPS && disney->eta > 1.0f) {
+    // TODO: Bug, had this
+    // if (metallic < EPS && roughness < EPS && disney->eta > 1.0f) {
+    if (metallic < EPS && roughness < EPS && eta > 1.0f) {
 		float nDotI = glm::dot(n, I);
 		float F = ShlickFresnel(nDotI, eta);
         F = glm::clamp(F, 1e-4f, 1.0f - 1e-4f);
@@ -108,10 +114,10 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // =========================
     // === (B) Perfect metal === 
     // =========================
-    else if (disney->metallic > NEPS && disney->roughness < EPS) {
+    else if (metallic > NEPS && roughness < EPS) {
         glm::vec3 dReflect = glm::reflect(I, n);
         sample.wo = dReflect;
-        sample.weight = disney->albedo;
+        sample.weight = albedo;
         sample.pdf = 1.0f;
         sample.isDelta = true;
         return sample;
@@ -120,7 +126,7 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // ========================
     // === (C) Glossy Metal ===
     // ========================
-    else if (disney->metallic > NEPS && disney->roughness > EPS) {
+    else if (metallic > NEPS && roughness > EPS) {
 
         glm::vec3 h = glm::vec3(0.0f);
         float hDotI = -1.0f;
@@ -333,9 +339,14 @@ float Shading::PdfDisney(const HitInfo& hit,
                          const DisneyMaterial* disney,
                          Sampler& sampler) {
 
+    glm::vec3 albedo = disney->GetAlbedo(hit.uv);
+    float roughness = disney->GetRoughness(hit.uv);
+    float metallic = disney->GetMetallic(hit.uv);
+
     float EPS = 1e-4f;
-    bool isDelta = disney->roughness < EPS &&
-            (disney->metallic > 1.0f - EPS ||
+	// TODO: Need eta check here?
+    bool isDelta = roughness < EPS &&
+            (metallic > 1.0f - EPS ||
 		     disney->eta > 1.0f);
     if (isDelta) return 0.0f;
 
@@ -346,7 +357,7 @@ float Shading::PdfDisney(const HitInfo& hit,
     bool isTransmission = (nDotWi <= 0.0f || nDotWo <= 0.0f);
     if (isTransmission) return 0.0f;
 
-    float Fo = glm::mix(0.04f, 1.0f, disney->metallic);
+    float Fo = glm::mix(0.04f, 1.0f, metallic);
     float pSpecular = Fo;
     float pDiffuse = 1.0f - pSpecular;
 
@@ -362,7 +373,7 @@ float Shading::PdfDisney(const HitInfo& hit,
 	float hDotWo = glm::abs(glm::dot(h, wo));
 
 	if (hDotN > 0.0f && hDotWo > 1e-6f) {
-		float D = DGGX(disney->roughness, h, n);
+		float D = DGGX(roughness, h, n);
 		float pdfSpecular = D * hDotN / (4.0f * hDotWo);
 		pdf += pSpecular * pdfSpecular;
 	}

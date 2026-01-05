@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <chrono>
+#include <sstream>
 
 class Scene;
 class Renderer;

@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------
 if(WIN32)
 	set(CMAKE_PREFIX_PATH
-		"C:/Users/rpadi/Documents/Dev/Penumbra/buildscripts/vcpkg/installed/x64-windows"
+		"C:/Users/rpadi/Documents/Dev/PenumbraDev/Penumbra/buildscripts/vcpkg/installed/x64-windows"
 		${CMAKE_PREFIX_PATH}
 	)
 endif()
@@ -173,6 +173,13 @@ FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
 file(READ ${minipbrt_SOURCE_DIR}/main.cpp contents)
 string(REPLACE "cropwwindow" "cropwindow" contents "${contents}")
 file(WRITE ${minipbrt_SOURCE_DIR}/main.cpp "${contents}")
+
+# Enable AVX for TinyBVH usage (msvc)
+if(MSVC)
+	add_compile_options(/arch:AVX2)
+else()
+	add_compile_options(-march=native)
+endif()
 
 # ======================================================================
 #  Build Options

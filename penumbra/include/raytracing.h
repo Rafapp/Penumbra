@@ -25,12 +25,13 @@ struct HitInfo{
     float t = FLT_MAX;
     glm::vec3 p = glm::vec3(0.0f);
     glm::vec3 n = glm::vec3(0.0f);
+
     bool front = false;
-    int materialId = -1;
     int areaLightId = -1;
-    uint32_t submeshIndex = 0;
+    uint32_t submeshId = 0;
+    int materialId = -1;
+
     glm::vec2 uv = glm::vec2(0.0f);
-    uint32_t triangleIndex = 0;
     AreaLight* areaLight = nullptr;
     Shape* shape = nullptr;
     Material* material = nullptr;

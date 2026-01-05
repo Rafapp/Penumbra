@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "minipbrt.h"
 
 class PbrtLoader {
