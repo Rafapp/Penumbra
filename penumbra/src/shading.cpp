@@ -74,9 +74,7 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // =================	
     // === (A) Glass ===
     // =================
-    // TODO: Bug, had this
-    // if (metallic < EPS && roughness < EPS && disney->eta > 1.0f) {
-    if (metallic < EPS && roughness < EPS && eta > 1.0f) {
+    if (metallic < EPS && roughness < EPS && disney->eta > 1.0f) {
 		float nDotI = glm::dot(n, I);
 		float F = ShlickFresnel(nDotI, eta);
         F = glm::clamp(F, 1e-4f, 1.0f - 1e-4f);
@@ -234,7 +232,6 @@ glm::vec3 Shading::ShadeMatte(const HitInfo& hit,
 
 // "Physically-Based Shading at Disney," Brent Burley (2012)
 // "Extending the Disney BRDF to a BSDF with Integrated Subsurface Scattering," Brent Burley (2015)
-// TODO: Sampler may not be needed
 glm::vec3 Shading::ShadeDisney(const HitInfo& hit, 
                                const glm::vec3& wi, 
                                const glm::vec3& wo, 

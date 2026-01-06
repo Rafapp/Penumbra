@@ -104,6 +104,15 @@ void GUI::Render() {
                 ImGui::Checkbox("##3", &renderSettings.mis);
             }
 
+			// Env. Mapping 
+            if (ImGui::CollapsingHeader("Env. Map")) {
+                ImGui::Text("Env. Map");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##EnvMapEnabled", &renderSettings.envMapEnabled);
+                ImGui::Text("Env. Map Intensity");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::InputFloat("##EnvMapIntensity", &renderSettings.envMapIntensity, 0.1f);
+            }
             // Animation
             if (ImGui::CollapsingHeader("Animation")) {
                 ImGui::Text("Anim Files Path");

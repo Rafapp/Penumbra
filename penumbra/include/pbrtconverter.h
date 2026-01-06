@@ -14,7 +14,7 @@ class IdealLight;
 
 namespace PbrtConverter {
     Scene ConvertScene(minipbrt::Scene* pbrtScene);
-    Shape* ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene);
+    Shape* ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene, uint32_t shapeIdx);
     Camera* ConvertCamera(minipbrt::Camera* pbrtCam);
     IdealLight* ConvertIdealLight(minipbrt::Light* pbrtLight);
     AreaLight* ConvertAreaLight(minipbrt::AreaLight* pbrtAreaLight);

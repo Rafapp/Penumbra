@@ -43,10 +43,10 @@ public:
     AreaLight* areaLight = nullptr;
     Material* material = nullptr;
 protected:
-    glm::mat4 transform;
-    glm::mat4 inverseTransform;
-    glm::vec3 position;
-    glm::vec3 scale;
+    glm::mat4 transform = glm::mat4(0.0f);
+    glm::mat4 inverseTransform = glm::mat4(0.0f);
+    glm::vec3 position = glm::vec3(0.0f);
+    glm::vec3 scale = glm::vec3(0.0f);
     int materialId = -1;
     int areaLightId = -1;
     float surfaceArea = -1.0f;
@@ -82,13 +82,13 @@ struct SubMesh{
 
 class TriangleMesh : public Shape {
 public:
-    TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene);
+    TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene, uint32_t shapeIdx);
     ~TriangleMesh();
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
     std::vector<SubMesh*> meshes;
     
 private:
-    bool LoadMeshWithAssimp(const std::string& filename, Scene& scene);
+    bool LoadMeshWithAssimp(const std::string& filename, Scene& scene, uint32_t shapeIdx);
     Texture* LoadTextureWithAssimp(aiMaterial* mat, aiTextureType type, const char* meshName);
     bool IntersectTriangle(const Ray& r, uint32_t triIdx, HitInfo& hit);
 };

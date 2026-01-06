@@ -29,8 +29,9 @@
 class BVH;
 
 #define OCCLUDED_EPS 1e-4f
-// inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
- inline unsigned int NTHREADS = 2;
+// TODO: Multithread toggle in GUI
+ inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
+ //inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:
@@ -40,7 +41,7 @@ public:
     void RenderPixel(int u, int v);
     bool TraceRay(const Ray& ray, HitInfo& hit) const;
     bool Occluded(const glm::vec3& o, const glm::vec3& d, const glm::vec3& n, float maxDist) const ;
-    glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput = glm::vec3(1.0f));
+    glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput = glm::vec3(1.0f), bool lastBounceDiffuse = false);
     void RenderAnimation();
     void BeginRender();
     void StopRender();
@@ -78,6 +79,10 @@ private:
     int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
+
+    // Env Map
+	bool envMapEnabled = false;
+	float envMapIntensity = -1.0f;
 
     // Color
     bool gammaCorrect = false;

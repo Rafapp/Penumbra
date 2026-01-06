@@ -6,9 +6,9 @@ height = 20
 radius = 100
 
 # === Animation ===
-frames = 96 
-scene_path = '/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap.pbrt'
-output_dir = os.path.expanduser('~/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/envmap_anim')
+frames = 96
+scene_path = 'C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\envmap.pbrt'
+output_dir = os.path.expanduser('C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap')
 
 os.makedirs(output_dir, exist_ok=True)
 

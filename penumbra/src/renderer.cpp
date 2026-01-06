@@ -239,6 +239,8 @@ void Renderer::BeginRender() {
     spp = rs.spp;
     indirectLighting = rs.indirect;
     misEnabled = rs.mis;
+	envMapEnabled = rs.envMapEnabled;
+	envMapIntensity = rs.envMapIntensity;
 	gammaCorrect = rs.gammaCorrect;
 	tonemap = rs.tonemap;
     exposureBias = rs.exposureBias;
@@ -284,7 +286,7 @@ bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
                 closest = tmpHit.t;
                 tmpHit.shape = shape;
                 
-                // Material lookup by submesh
+                // Material lookup by submesh (if mesh)
                 if (auto mesh = dynamic_cast<TriangleMesh*>(shape)) {
                     if (tmpHit.submeshId < mesh->meshes.size()) {
                         SubMesh* subMesh = mesh->meshes[tmpHit.submeshId];
@@ -306,14 +308,23 @@ bool Renderer::TraceRay(const Ray& ray, HitInfo& hit) const {
     return hitAny;
 }
 
-glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput) {
+glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput, bool lastBounceDiffuse) {
     glm::vec3 color(0.0f);
 
     // Trace ray
     HitInfo hit;
     hit.t = FLT_MAX;
     if (!TraceRay(ray, hit)) {
-        return envMap.SampleColor(ray);
+        if (envMapEnabled) {
+            float intensity = envMapIntensity;
+			// TODO: Band aid before proper environment map importance sampling
+            // Only reduce for diffuse bounces
+            if (lastBounceDiffuse && depth > 0) {
+                intensity *= 1e-3f;
+            }
+            return envMap.SampleColor(ray) * intensity;
+        }
+        return glm::vec3(0.0f);
     }
 
     // Russian Roulette
@@ -460,13 +471,16 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
             }
         }
 
+		// TODO (band aid): Check if bounce was diffuse for env. map adjustment
+		bool isDiffuse = matSample.isDelta ? false : true;
+
 		// Evaluate rendering equation recursively
 		glm::vec3 f = matSample.isDelta ? glm::vec3(1.0f) : Shading::ShadeMaterial(hit, -ray.d, matSample.wo, mat);
         glm::vec3 newThroughput = mis * throughput * f * matSample.weight;
 		glm::vec3 n = hit.front ? hit.n : -hit.n;
         glm::vec3 offN = (glm::dot(matSample.wo, n) > 0.0f) ? n : -n;
         Ray bounceRay(hit.p + OCCLUDED_EPS * offN, matSample.wo);
-        glm::vec3 Li = TracePath(bounceRay, sampler, depth, newThroughput);
+        glm::vec3 Li = TracePath(bounceRay, sampler, depth, newThroughput, isDiffuse);
         indirectLight += Li;
     }
 
@@ -487,7 +501,8 @@ void Renderer::RenderPixel(int u, int v) {
 
     bool hitAny = TraceRay(envRay, hit);
     if (!hitAny) {
-        color += envMap.SampleColor(envRay);
+		if (envMapEnabled) color = envMap.SampleColor(envRay) * envMapIntensity;
+		else color = glm::vec3(0.0f);
     } 
     // Pathtrace and super sample
     else {

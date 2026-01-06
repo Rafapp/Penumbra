@@ -16,6 +16,7 @@ glm::mat4 PbrtConverter::TransformToMat4(const minipbrt::Transform& t) {
 }
 
 // TODO: Instancing to reduce duplicate data in meshes
+// TODO: Remove order/indexing dependencies between PBRT and Penumbra
 // === Scene conversion ===
 Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     Scene scene;
@@ -35,8 +36,11 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     }
 
     // 3. Shapes
+    uint32_t meshCount = 0;
     for (auto pbrtShape : pbrtScene->shapes) {
-        Shape* shape = ConvertShape(pbrtShape, scene);
+        // TODO: Not great paradigm to use indexes just for meshes. Need better solution.
+        uint32_t matIdx = (pbrtShape->type() == minipbrt::ShapeType::PLYMesh) ? meshCount : 0;
+        Shape* shape = ConvertShape(pbrtShape, scene, matIdx);
         if (shape) {
             scene.shapes.push_back(shape);
             uint32_t lightIdx = pbrtShape->areaLight;
@@ -49,17 +53,19 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
                     throw std::runtime_error("Area light index " + std::to_string(lightIdx) + " not found for shape.");
                 }
             }
+            if (dynamic_cast<TriangleMesh*>(shape)) {
+				meshCount++;
+            }
 		}
     }
 
-    // 4. Assign materials to shapes
-	// TODO: Pass index to LoadWithAssimp to assign materials directly 
-    int shapeIdx = 0;
+    // 5. Assign non-mesh materials
+    uint32_t shapeIdx = 0;
     for (auto pbrtShape : pbrtScene->shapes) {
         if (shapeIdx >= scene.shapes.size()) break;
 
         // Skip mesh shapes - they handle materials in LoadMeshWithAssimp
-        if (auto mesh = dynamic_cast<TriangleMesh*>(scene.shapes[shapeIdx])) {
+        if (auto mesh = dynamic_cast<TriangleMesh*>(scene.shapes.at(shapeIdx))) {
             shapeIdx++;
             continue;
         }
@@ -67,8 +73,8 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
         // Assign PBRT material to non-mesh shapes
         int mi = pbrtShape->material;
         if (mi != minipbrt::kInvalidIndex && mi < (int)scene.materials.size()) {
-            Material* m = scene.materials[mi];
-            if (m) scene.shapes[shapeIdx]->material = m;
+            Material* m = scene.materials.at(mi);
+            if (m) scene.shapes.at(shapeIdx)->material = m;
         }
         shapeIdx++;
     }
@@ -125,7 +131,7 @@ Material* PbrtConverter::ConvertMaterial(minipbrt::Material* pbrtMat) {
     return material;
 }
 
-Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene) {
+Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene, uint32_t shapeIdx) {
     Shape* shape = nullptr;
     
     if (pbrtShape->type() == minipbrt::ShapeType::Sphere) {
@@ -134,7 +140,7 @@ Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene) {
     } 
     else if (pbrtShape->type() == minipbrt::ShapeType::PLYMesh) {
         auto plyMesh = static_cast<minipbrt::PLYMesh*>(pbrtShape);
-        shape = new TriangleMesh(plyMesh, scene);
+        shape = new TriangleMesh(plyMesh, scene, shapeIdx);
     }
     else {
         std::cerr << "Unsupported shape type" << std::endl;

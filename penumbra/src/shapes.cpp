@@ -162,9 +162,8 @@ Sphere::Sphere(minipbrt::Sphere* pbrtSphere) {
     }
 }
 
-TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
+TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene, uint32_t meshIdx) {
     if (!plyMesh) return;
-    
     // Load mesh via Assimp (with its materials)
     std::string meshPath = plyMesh->filename;
     size_t pos = meshPath.find("./resources/meshes/");
@@ -172,7 +171,7 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
         // Minipbrt works from the scenes dir, so we need to clean the path
         meshPath = meshPath.substr(pos);
     }
-    if (!LoadMeshWithAssimp(meshPath, scene)) {
+    if (!LoadMeshWithAssimp(meshPath, scene, meshIdx)) {
         std::cerr << "Failed to load mesh: " << meshPath << std::endl;
         return;
     }
@@ -187,9 +186,6 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene) {
     this->areaLightId = static_cast<int>(plyMesh->areaLight);
 
     // TODO: Calculate surface area if mesh is area light
-    // if(areaLightId != minipbrt::kInvalidIndex) {
-    //     this->surfaceArea = 4.0f *M_PI * radius * radius;
-    // }
 }
 
 TriangleMesh::~TriangleMesh() {
@@ -216,7 +212,7 @@ Texture* TriangleMesh::LoadTextureWithAssimp(aiMaterial* aiMat, aiTextureType ty
 }
 
 // === Mesh loading with Assimp ===
-bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene){
+bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene, uint32_t shapeIdx){
     Assimp::Importer importer;
 
     // NOTE: Assuming flipped winding order for PBRT
@@ -232,7 +228,7 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene)
         return false;
     }
     
-    // Load first mesh
+    // Load submeshes and assign their materials 
     for(int i = 0; i < numMeshes; i++){
         const aiMesh* aiMesh = aiScene->mMeshes[i];
         SubMesh* mesh = new SubMesh();
@@ -279,14 +275,16 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene)
         }
 
         // TODO: For now, assume first submesh uses first PBRT material, etc.
-        int pbrtMatIdx = i;
+        uint32_t matIdx = shapeIdx + i;
         aiMaterial* aiMat = aiScene->mMaterials[aiMesh->mMaterialIndex];
-        if (pbrtMatIdx < (int)scene.materials.size()) {
-            auto disneyMtl = static_cast<DisneyMaterial*>(scene.materials[pbrtMatIdx]);
+        if (matIdx < (int)scene.materials.size()) {
+            auto disneyMtl = static_cast<DisneyMaterial*>(scene.materials[matIdx]);
             disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
             disneyMtl->roughnessTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, aiMesh->mName.C_Str());
             disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
-            mesh->materialIndex = pbrtMatIdx;
+            mesh->materialIndex = matIdx;
+        } else {
+			std::cout << "WARNING: Material index out of bounds for submesh in mesh: " << filename << std::endl;
         }
 
         if(mesh->BuildBVH()){

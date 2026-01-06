@@ -15,6 +15,11 @@ struct RenderSettings {
     int spp = 1;
     bool indirect = true;
     bool mis = true;
+
+    // Env Map
+    bool envMapEnabled = true;
+    float envMapIntensity = 0.5f;
+
     // TODO: Remove this, placeholder for my machines only, or add a file system perhaps
 	#if(WIN32)
 		char scenePath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\resources\\scenes\\envmap.pbrt";

@@ -37,9 +37,9 @@ public:
 
     // Mesh material parameters
     glm::vec3 albedo = glm::vec3(255.0f, 0.0f, 255.0f);
-    float roughness;
-    float metallic;
-    float eta;
+    float roughness = 0.5f;
+    float metallic = 0.0f;
+    float eta = 1.0f;
 
     // Sample textures if available, otherwise return base values
     glm::vec3 GetAlbedo(const glm::vec2& uv) const {
