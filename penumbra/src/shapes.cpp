@@ -120,8 +120,8 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             // Interpolate UV coordinates
             if(mesh->uvs){
                 hit.uv = (1.0f - u - v) * (*mesh->uvs)[triIdx.x] + 
-                        u * (*mesh->uvs)[triIdx.y] + 
-                        v * (*mesh->uvs)[triIdx.z];
+                                      u * (*mesh->uvs)[triIdx.y] + 
+                                      v * (*mesh->uvs)[triIdx.z];
             } else hit.uv = glm::vec2(0.0f);
 
             hit.t = tWorld;
@@ -218,8 +218,14 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
     // NOTE: Assuming flipped winding order for PBRT
     const aiScene* aiScene = importer.ReadFile(filename,
         aiProcess_Triangulate | 
-        aiProcess_GenNormals | 
+        // aiProcess_GenNormals | 
         aiProcess_FlipWindingOrder);
+
+    if(!aiScene){
+        std::cerr << "Assimp error loading mesh: " << filename << std::endl;
+        std::cerr << "Error: " << importer.GetErrorString() << std::endl;
+        return false;
+    }
     
     unsigned int numMeshes = aiScene->mNumMeshes;
     if (!aiScene || numMeshes == 0) {
@@ -256,8 +262,8 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
             mesh->normals = new std::vector<glm::vec3>(mesh->nVerts);
             for (size_t i = 0; i < mesh->nVerts; i++) {
                 (*mesh->normals)[i] = glm::vec3(aiMesh->mNormals[i].x,
-                                        aiMesh->mNormals[i].y,
-                                        aiMesh->mNormals[i].z);
+                                                aiMesh->mNormals[i].y,
+                                                aiMesh->mNormals[i].z);
             }
         } else {
             std::cerr << "  Warning: No normals found for mesh ..." << std::endl;
@@ -274,9 +280,10 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
             std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
         }
 
-        // TODO: For now, assume first submesh uses first PBRT material, etc.
+        // TODO (CRITICAL): Band aid; For now, assume first submesh uses first PBRT material, etc.
         uint32_t matIdx = shapeIdx + i;
         aiMaterial* aiMat = aiScene->mMaterials[aiMesh->mMaterialIndex];
+
         if (matIdx < (int)scene.materials.size()) {
             auto disneyMtl = static_cast<DisneyMaterial*>(scene.materials[matIdx]);
             disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
@@ -284,7 +291,8 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
             disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
             mesh->materialIndex = matIdx;
         } else {
-			std::cout << "WARNING: Material index out of bounds for submesh in mesh: " << filename << std::endl;
+            std::cout << "WARNING: Material index " << matIdx << " out of bounds (scene has " 
+                    << scene.materials.size() << " materials)" << std::endl;
         }
 
         if(mesh->BuildBVH()){

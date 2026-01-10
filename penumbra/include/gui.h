@@ -30,7 +30,7 @@ struct RenderSettings {
 		char animPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap";
 		char saveAnimPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\animOut";
 	#else
-		char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/envmap.pbrt";
+		char scenePath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/materialcube.pbrt";
 		char imgOutPath[256] = "/Users/rafa/Documents/Dev/PenumbraDev/images";
 		char imgName[256] = "out.png";
 

@@ -319,9 +319,9 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
             float intensity = envMapIntensity;
 			// TODO: Band aid before proper environment map importance sampling
             // Only reduce for diffuse bounces
-            if (lastBounceDiffuse && depth > 0) {
-                intensity *= 1e-3f;
-            }
+            // if (lastBounceDiffuse && depth > 0) {
+            //     intensity *= 1e-3f;
+            // }
             return envMap.SampleColor(ray) * intensity;
         }
         return glm::vec3(0.0f);

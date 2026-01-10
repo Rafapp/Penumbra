@@ -6,10 +6,18 @@ height = 20
 radius = 100
 
 # === Animation ===
-frames = 96
-scene_path = 'C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\envmap.pbrt'
-output_dir = os.path.expanduser('C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap')
+frames = 48 
+windows = False
+mac = True
+scene_path = ""
+output_dir = ""
 
+if(windows):
+    scene_path = 'C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\envmap.pbrt'
+    output_dir = os.path.expanduser('C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap')
+elif(mac):
+    scene_path = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/materialcube.pbrt"
+    output_dir = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/cube_anim"
 os.makedirs(output_dir, exist_ok=True)
 
 for i in range(frames):
