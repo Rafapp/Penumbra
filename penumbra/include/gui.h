@@ -22,7 +22,7 @@ struct RenderSettings {
 
     // TODO: Remove this, placeholder for my machines only, or add a file system perhaps
 	#if(WIN32)
-		char scenePath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\resources\\scenes\\envmap.pbrt";
+		char scenePath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\resources\\scenes\\toystory.pbrt";
 		char imgOutPath[256] = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\Penumbra\\images\\images";
 		char imgName[256] = "out.png";
 

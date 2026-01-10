@@ -60,7 +60,11 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     const float EPS = 1e-4f;
 	const float NEPS = 1.0f - EPS;
 
-    float r = disney->roughness;
+    glm::vec3 albedo = disney->GetAlbedo(hit.uv);
+    float roughness = disney->GetRoughness(hit.uv);
+    float metallic = disney->GetMetallic(hit.uv);
+
+    float r = roughness;
     float r2 = r * r;
 	glm::vec3 n = hit.front ? hit.n : -hit.n;
     glm::vec3 I = -wi;
@@ -70,7 +74,7 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // =================	
     // === (A) Glass ===
     // =================
-    if (disney->metallic < EPS && disney->roughness < EPS && disney->eta > 1.0f) {
+    if (metallic < EPS && roughness < EPS && disney->eta > 1.0f) {
 		float nDotI = glm::dot(n, I);
 		float F = ShlickFresnel(nDotI, eta);
         F = glm::clamp(F, 1e-4f, 1.0f - 1e-4f);
@@ -108,10 +112,10 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // =========================
     // === (B) Perfect metal === 
     // =========================
-    else if (disney->metallic > NEPS && disney->roughness < EPS) {
+    else if (metallic > NEPS && roughness < EPS) {
         glm::vec3 dReflect = glm::reflect(I, n);
         sample.wo = dReflect;
-        sample.weight = disney->albedo;
+        sample.weight = albedo;
         sample.pdf = 1.0f;
         sample.isDelta = true;
         return sample;
@@ -120,7 +124,7 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     // ========================
     // === (C) Glossy Metal ===
     // ========================
-    else if (disney->metallic > NEPS && disney->roughness > EPS) {
+    else if (metallic > NEPS && roughness > EPS) {
 
         glm::vec3 h = glm::vec3(0.0f);
         float hDotI = -1.0f;

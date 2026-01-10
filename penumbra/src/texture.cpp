@@ -22,7 +22,7 @@ glm::vec3 Texture::Sample(const glm::vec2& uv) const {
 
     // Convert UV coordinates to pixel coordinates
     int x = static_cast<int>(uv.x * xres);
-    int y = static_cast<int>(uv.y * yres);
+    int y = static_cast<int>((1.0f - uv.y) * yres);
     if (x < 0 || x >= xres || y < 0 || y >= yres) return glm::vec3(0.0f);
 
     // Get the pixel color

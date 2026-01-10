@@ -53,19 +53,15 @@ void Renderer::PrintStats() {
     constexpr const char* NUM = "\x1b[38;5;111m";
     constexpr const char* ON = "\x1b[38;5;120m";
     constexpr const char* OFF = "\x1b[38;5;203m";
-
     auto yn = [&](bool v) -> std::string {
         return std::string(c(v ? ON : OFF)) + (v ? "ENABLED" : "DISABLED") + c(RST);
         };
-
     constexpr int KW = 22;
     const std::string title = "STARTING RENDER";
-
     std::cout
         << c(LINE) << "==================================================" << c(RST) << "\n"
         << c(BLD) << c(HDR) << "  " << title << c(RST) << "\n"
         << c(LINE) << "==================================================" << c(RST) << "\n";
-
     std::cout << "\n" << c(BLD) << c(SEC) << "Render Parameters" << c(RST) << "\n";
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Resolution"
         << c(RST) << c(DIM) << ": " << c(RST)
@@ -80,11 +76,22 @@ void Renderer::PrintStats() {
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "MIS"
         << c(RST) << c(DIM) << ": " << c(RST)
         << yn(misEnabled) << "\n";
-
     std::cout << "\n" << c(BLD) << c(SEC) << "Scene Statistics" << c(RST) << "\n";
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of shapes"
         << c(RST) << c(DIM) << ": " << c(RST)
         << c(NUM) << scene->shapes.size() << c(RST) << "\n";
+
+    // Count total submeshes
+    uint32_t totalSubmeshes = 0;
+    for (Shape* shape : scene->shapes) {
+        if (auto mesh = dynamic_cast<TriangleMesh*>(shape)) {
+            totalSubmeshes += mesh->meshes.size();
+        }
+    }
+    std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of submeshes"
+        << c(RST) << c(DIM) << ": " << c(RST)
+        << c(NUM) << totalSubmeshes << c(RST) << "\n";
+
     std::cout << "  " << c(KEY) << std::left << std::setw(KW) << "Number of lights"
         << c(RST) << c(DIM) << ": " << c(RST)
         << c(NUM) << scene->lights.size() << c(RST) << "\n";
@@ -317,11 +324,11 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     if (!TraceRay(ray, hit)) {
         if (envMapEnabled) {
             float intensity = envMapIntensity;
-			// TODO: Band aid before proper environment map importance sampling
-            // Only reduce for diffuse bounces
-            // if (lastBounceDiffuse && depth > 0) {
-            //     intensity *= 1e-3f;
-            // }
+			 // TODO: Band aid before proper environment map importance sampling
+             // Only reduce for diffuse bounces
+             if (lastBounceDiffuse && depth > 0) {
+                 intensity *= 1e-3f;
+             }
             return envMap.SampleColor(ray) * intensity;
         }
         return glm::vec3(0.0f);

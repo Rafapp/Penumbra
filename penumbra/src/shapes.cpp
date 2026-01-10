@@ -1,4 +1,4 @@
-#include "shapes.h"
+﻿#include "shapes.h"
 
 #include <filesystem>
 
@@ -195,20 +195,30 @@ TriangleMesh::~TriangleMesh() {
 }
 
 // === Texture loading with Assimp ===
-Texture* TriangleMesh::LoadTextureWithAssimp(aiMaterial* aiMat, aiTextureType type, const char* meshName){
-        aiString texPath;
-        aiReturn texReturn;
-        texReturn = aiMat->GetTexture(type, 0, &texPath);
-        if(texReturn != aiReturn_SUCCESS){
-            // TODO: Proper logging system (with pretty colors!)
-            return nullptr;
-        }
-        Texture* texture = new Texture();
-        if(texture->Load(texPath.C_Str())){
-            return texture;
-        } else {
-            return nullptr;
-        }
+Texture* TriangleMesh::LoadTextureWithAssimp(aiMaterial* aiMat, aiTextureType type, const char* meshName) {
+    aiString texPath;
+    aiReturn texReturn;
+    texReturn = aiMat->GetTexture(type, 0, &texPath);
+
+    if (texReturn != aiReturn_SUCCESS) {
+        return nullptr;
+    }
+
+    // Extract just the filename
+    std::string fullTexPath = std::string(texPath.C_Str());
+    std::string filename = fullTexPath.substr(fullTexPath.find_last_of("/\\") + 1);
+
+    // Construct path relative to executable
+    std::string resolvedPath = "./resources/textures/" + filename;
+
+    Texture* texture = new Texture();
+    if (texture->Load(resolvedPath.c_str())) {
+        return texture;
+    }
+    else {
+        std::cerr << "Failed to load texture: " << resolvedPath << std::endl;
+        return nullptr;
+    }
 }
 
 // === Mesh loading with Assimp ===
@@ -270,13 +280,14 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
         }
 
         // Load UV's
-        if(aiMesh->HasTextureCoords(0)){
+        if (aiMesh->HasTextureCoords(0)) {
             mesh->uvs = new std::vector<glm::vec2>(mesh->nVerts);
-            for(size_t i = 0; i < mesh->nVerts; i++){
+            for (size_t i = 0; i < mesh->nVerts; i++) {
                 (*mesh->uvs)[i] = glm::vec2(aiMesh->mTextureCoords[0][i].x,
-                                    aiMesh->mTextureCoords[0][i].y);
+                    aiMesh->mTextureCoords[0][i].y);
             }
-        } else {
+        }
+        else {
             std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
         }
 
