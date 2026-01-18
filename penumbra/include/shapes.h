@@ -71,6 +71,8 @@ struct SubMesh{
     std::vector<glm::vec4>* vertices = nullptr;
     std::vector<glm::uvec4>* triangles = nullptr;
     std::vector<glm::vec3>* normals = nullptr;
+    std::vector<glm::vec3>* tangents = nullptr;
+    std::vector<glm::vec3>* bitangents = nullptr;
     std::vector<glm::vec2>* uvs = nullptr;
 
     std::vector<uint32_t> bvhIndices;

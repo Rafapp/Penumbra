@@ -25,6 +25,8 @@ struct HitInfo{
     float t = FLT_MAX;
     glm::vec3 p = glm::vec3(0.0f);
     glm::vec3 n = glm::vec3(0.0f);
+	glm::vec3 tangent = glm::vec3(0.0f);
+	glm::vec3 bitangent = glm::vec3(0.0f);
 
     bool front = false;
     int areaLightId = -1;

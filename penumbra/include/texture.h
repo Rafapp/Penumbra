@@ -10,6 +10,7 @@
 #define M_1_PI 0.31830987334251403809f
 #endif
 
+#include <assimp/material.h>
 #include "glm/glm.hpp"
 #include "sampling.h"
 #include "image.h"
@@ -28,3 +29,5 @@ private:
     int yres = 0;
     int nchannels = 0;
 };
+
+std::string TextureTypeToString(aiTextureType type);

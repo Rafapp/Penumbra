@@ -30,8 +30,8 @@ class BVH;
 
 #define OCCLUDED_EPS 1e-4f
 // TODO: Multithread toggle in GUI
- //inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
- inline unsigned int NTHREADS = 2;
+ inline unsigned int NTHREADS = (int)std::thread::hardware_concurrency();
+ //inline unsigned int NTHREADS = 2;
 
 class Renderer{
 public:

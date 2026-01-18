@@ -35,6 +35,9 @@ public:
     ::Texture* roughnessTexture = nullptr;
     ::Texture* metallicTexture = nullptr;
 
+    // Bump mapping textures
+	::Texture* normalTexture = nullptr;
+
     // Mesh material parameters
     glm::vec3 albedo = glm::vec3(255.0f, 0.0f, 255.0f);
     float roughness = 0.5f;

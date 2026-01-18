@@ -117,6 +117,23 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
             glm::vec3 nW = glm::normalize(normalMatrix * nObj);
 
+            // Interpolate tangent and bitangent (if they exist)
+            glm::vec3 tW = glm::vec3(0.0f);
+            glm::vec3 bW = glm::vec3(0.0f);
+            if (mesh->tangents && mesh->bitangents) {
+                glm::vec3 t0 = (*mesh->tangents)[triIdx.x];
+                glm::vec3 t1 = (*mesh->tangents)[triIdx.y];
+                glm::vec3 t2 = (*mesh->tangents)[triIdx.z];
+                glm::vec3 tObj = glm::normalize((1.0f - u - v) * t0 + u * t1 + v * t2);
+                tW = glm::normalize(normalMatrix * tObj);
+
+                glm::vec3 b0 = (*mesh->bitangents)[triIdx.x];
+                glm::vec3 b1 = (*mesh->bitangents)[triIdx.y];
+                glm::vec3 b2 = (*mesh->bitangents)[triIdx.z];
+                glm::vec3 bObj = glm::normalize((1.0f - u - v) * b0 + u * b1 + v * b2);
+                bW = glm::normalize(normalMatrix * bObj);
+            }
+
             // Interpolate UV coordinates
             if(mesh->uvs){
                 hit.uv = (1.0f - u - v) * (*mesh->uvs)[triIdx.x] + 
@@ -127,6 +144,8 @@ bool TriangleMesh::IntersectRay(const Ray& r, HitInfo& hit) {
             hit.t = tWorld;
             hit.p = pW;
             hit.n = nW;
+			hit.tangent = tW;
+			hit.bitangent = bW;
             hit.front = glm::dot(glm::vec3(transform * glm::vec4(r.d, 0.0f)), nW) < 0.0f;
             hit.materialId = materialId;
             hit.areaLightId = areaLightId;
@@ -204,6 +223,8 @@ Texture* TriangleMesh::LoadTextureWithAssimp(aiMaterial* aiMat, aiTextureType ty
         return nullptr;
     }
 
+	std::cout << "Info: Found texture: " << TextureTypeToString(type) << " for mesh " << meshName << std::endl;
+
     // Extract just the filename
     std::string fullTexPath = std::string(texPath.C_Str());
     std::string filename = fullTexPath.substr(fullTexPath.find_last_of("/\\") + 1);
@@ -229,7 +250,8 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
     const aiScene* aiScene = importer.ReadFile(filename,
         aiProcess_Triangulate | 
         // aiProcess_GenNormals | 
-        aiProcess_FlipWindingOrder);
+        aiProcess_FlipWindingOrder |
+		aiProcess_CalcTangentSpace);
 
     if(!aiScene){
         std::cerr << "Assimp error loading mesh: " << filename << std::endl;
@@ -284,11 +306,27 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
             mesh->uvs = new std::vector<glm::vec2>(mesh->nVerts);
             for (size_t i = 0; i < mesh->nVerts; i++) {
                 (*mesh->uvs)[i] = glm::vec2(aiMesh->mTextureCoords[0][i].x,
-                    aiMesh->mTextureCoords[0][i].y);
+											aiMesh->mTextureCoords[0][i].y);
+            }
+        } else {
+            std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
+        }
+
+        // Load TB's
+        if (aiMesh->HasTangentsAndBitangents()) {
+            mesh->tangents = new std::vector<glm::vec3>(mesh->nVerts);
+            mesh->bitangents = new std::vector<glm::vec3>(mesh->nVerts);
+            for (size_t i = 0; i < mesh->nVerts; i++) {
+                (*mesh->tangents)[i] = glm::vec3(aiMesh->mTangents[i].x,
+                    aiMesh->mTangents[i].y,
+                    aiMesh->mTangents[i].z);
+                (*mesh->bitangents)[i] = glm::vec3(aiMesh->mBitangents[i].x,
+                    aiMesh->mBitangents[i].y,
+                    aiMesh->mBitangents[i].z);
             }
         }
         else {
-            std::cerr << "  Warning: No UVs found for mesh ..." << std::endl;
+            std::cerr << "  Warning: No tangents/bitangents found for mesh " << aiMesh->mName.C_Str() << std::endl;
         }
 
         // TODO (CRITICAL): Band aid; For now, assume first submesh uses first PBRT material, etc.
@@ -300,6 +338,7 @@ bool TriangleMesh::LoadMeshWithAssimp(const std::string& filename, Scene& scene,
             disneyMtl->albedoTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE, aiMesh->mName.C_Str());
             disneyMtl->roughnessTexture = LoadTextureWithAssimp(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, aiMesh->mName.C_Str());
             disneyMtl->metallicTexture = LoadTextureWithAssimp(aiMat, aiTextureType_METALNESS, aiMesh->mName.C_Str());
+            disneyMtl->normalTexture = LoadTextureWithAssimp(aiMat, aiTextureType_NORMALS, aiMesh->mName.C_Str());
             mesh->materialIndex = matIdx;
         } else {
             std::cout << "WARNING: Material index " << matIdx << " out of bounds (scene has " 

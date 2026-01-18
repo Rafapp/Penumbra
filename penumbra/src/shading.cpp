@@ -64,9 +64,19 @@ Shading::BxDFSample Shading::SampleDisney(const HitInfo& hit,
     float roughness = disney->GetRoughness(hit.uv);
     float metallic = disney->GetMetallic(hit.uv);
 
+    glm::vec3 n = hit.front ? hit.n : -hit.n;
+    glm::vec3 t = hit.front ? hit.tangent : -hit.tangent;
+    glm::vec3 b = hit.front ? hit.bitangent : -hit.bitangent;
+
+    if (disney->normalTexture) {
+        glm::vec3 normalMapSample = 2.0f * disney->normalTexture->Sample(hit.uv) - glm::vec3(1.0f);
+        glm::mat3 tangentToWorld(t, b, n);
+        glm::vec3 perturbedNormal = tangentToWorld * normalMapSample;
+        n = glm::normalize(perturbedNormal);
+    }
+
     float r = roughness;
     float r2 = r * r;
-	glm::vec3 n = hit.front ? hit.n : -hit.n;
     glm::vec3 I = -wi;
 	float eta = hit.front ? 1.0f / disney->eta : disney->eta;
 	float eta2 = eta * eta;
@@ -238,7 +248,16 @@ glm::vec3 Shading::ShadeDisney(const HitInfo& hit,
                                const glm::vec3& wo, 
                                const DisneyMaterial* disney) {
 
-	glm::vec3 n = hit.front ? hit.n : -hit.n;
+    glm::vec3 n = hit.front ? hit.n : -hit.n;
+    glm::vec3 t = hit.front ? hit.tangent : -hit.tangent;
+    glm::vec3 b = hit.front ? hit.bitangent : -hit.bitangent;
+    if (disney->normalTexture) {
+        glm::vec3 normalMapSample = 2.0f * disney->normalTexture->Sample(hit.uv) - glm::vec3(1.0f);
+        glm::mat3 tangentToWorld(t, b, n);
+        glm::vec3 perturbedNormal = tangentToWorld * normalMapSample;
+        n = glm::normalize(perturbedNormal);
+    }
+
     float etaI = hit.front ? 1.0f : disney->eta;
     float etaO = hit.front ? disney->eta : 1.0f;
     float eta = etaI / etaO;
