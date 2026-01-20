@@ -51,6 +51,8 @@ After taking the amazing [CS 6620, Rendering with Ray Tracing](https://graphics.
 ## Gallery
 https://github.com/user-attachments/assets/6509d9c4-4483-4d58-88a4-2c83f58304f4
 
+https://github.com/user-attachments/assets/6ad0b839-c02f-41c2-8786-0c1d049dd6b1
+
 <img width="1920" height="1080" alt="delta_teapots" src="https://github.com/user-attachments/assets/642303c6-7cef-4b0b-9ddb-72380b39566e" />
 <img width="958" height="568" alt="Cornell" src="https://github.com/user-attachments/assets/b89eaaa0-631a-41ac-b176-e3a22c645a27" />
 <img width="1920" height="1080" alt="teapot_roughness" src="https://github.com/user-attachments/assets/4fe710ed-1e38-4ade-a253-0961fbfa52db" />
