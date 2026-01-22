@@ -121,7 +121,7 @@ Run `build.bat --help` or `./build.sh --help` for all options.
 - Joe Schutte's [article on Disney BSSRDF implementation](https://schuttejoe.github.io/post/disneybsdf/)
 - Thanks to:
   - Professor [Cem Yuksel](https://www.cemyuksel.com/) for the coolest computer graphics course ever
-  - My mentor [Emily Vo] for their advice and direction in making this renderer
+  - My mentor [Emily Vo](https://emily-vo.github.io/) for their advice and direction in making this renderer
   - My mentor [Karl Li](https://www.yiningkarlli.com/) for his guidance and resources to improve this project (and the amazing blog on his renderer [Takua](https://www.yiningkarlli.com/projects/takuarenderer.html)!) 
   - My peers at the University of Utah, especially Kyle Webster, Andrew Tate, Austin Kim and Conner Murray, and everyone at the [Utah Graphics Lab](https://graphics.cs.utah.edu/) for their support and advice
 
