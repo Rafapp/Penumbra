@@ -38,7 +38,6 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
     // 3. Shapes
     uint32_t meshCount = 0;
     for (auto pbrtShape : pbrtScene->shapes) {
-        // TODO: Not great paradigm to use indexes just for meshes. Need better solution.
         uint32_t matIdx = (pbrtShape->type() == minipbrt::ShapeType::PLYMesh) ? meshCount : 0;
         Shape* shape = ConvertShape(pbrtShape, scene, matIdx);
         if (shape) {
@@ -53,10 +52,11 @@ Scene PbrtConverter::ConvertScene(minipbrt::Scene* pbrtScene) {
                     throw std::runtime_error("Area light index " + std::to_string(lightIdx) + " not found for shape.");
                 }
             }
-            if (dynamic_cast<TriangleMesh*>(shape)) {
-				meshCount++;
+            if (auto mesh = dynamic_cast<TriangleMesh*>(shape)) {
+                // Increment by actual submesh count instead of just 1
+                meshCount += mesh->meshes.size();
             }
-		}
+        }
     }
 
     // 5. Assign non-mesh materials
