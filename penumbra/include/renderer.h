@@ -79,6 +79,7 @@ private:
     int spp = -1;
     int renderWidth = -1;
     int renderHeight = -1;
+    bool renderLights = false;
 
     // Env Map
 	bool envMapEnabled = false;

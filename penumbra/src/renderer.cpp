@@ -55,7 +55,7 @@ void Renderer::PrintStats() {
     constexpr const char* OFF = "\x1b[38;5;203m";
     auto yn = [&](bool v) -> std::string {
         return std::string(c(v ? ON : OFF)) + (v ? "ENABLED" : "DISABLED") + c(RST);
-        };
+	};
     constexpr int KW = 22;
     const std::string title = "STARTING RENDER";
     std::cout
@@ -246,6 +246,7 @@ void Renderer::BeginRender() {
     spp = rs.spp;
     indirectLighting = rs.indirect;
     misEnabled = rs.mis;
+    renderLights = rs.renderLights;
 	envMapEnabled = rs.envMapEnabled;
 	envMapIntensity = rs.envMapIntensity;
 	gammaCorrect = rs.gammaCorrect;
@@ -335,11 +336,10 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     }
 
     // Russian Roulette
-    if(depth > 32) return glm::vec3(0.0f); // Hard cutoff
     float pSurvive = 1.0f;
-    if (depth > 1){
+    if (depth > 3){
         float maxEnergy = glm::max(glm::max(throughput.r, throughput.g), throughput.b);
-        pSurvive = glm::min(0.99f, glm::max(0.1f, maxEnergy));
+        pSurvive = glm::min(0.99f, glm::max(0.25f, maxEnergy));
         float x = sampler.Sample1D();
         if (x > pSurvive) {
             return glm::vec3(0.0f);
@@ -357,11 +357,17 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
     if (hit.areaLight != nullptr) {
         AreaLight* areaLight = dynamic_cast<AreaLight*>(hit.areaLight);
-        return throughput * areaLight->GetRadiance(hit, *hit.shape);
+
+        // Normal behavior: lights are visible
+        if (renderLights || depth > 1) {
+            return throughput * areaLight->GetRadiance(hit, *hit.shape);
+        }
+        Ray continueRay(hit.p + ray.d * 1e-3f, ray.d);
+        return TracePath(continueRay, sampler, depth, throughput, lastBounceDiffuse);
     }
 
     Material* mat = hit.material;
-	if (!mat) glm::vec3(0.0f);
+	if (!mat) return glm::vec3(0.0f);
 
     // ==============================
     // === 2. Sample random light ===

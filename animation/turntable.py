@@ -2,19 +2,19 @@ import os
 import math
 
 # === Camera ===
-height = 20
-radius = 100
+height = 27.5 
+radius = 35 
 
 # === Animation ===
 frames = 48 
-windows = False
-mac = True
+windows = True 
+mac = False 
 scene_path = ""
 output_dir = ""
 
 if(windows):
-    scene_path = 'C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\envmap.pbrt'
-    output_dir = os.path.expanduser('C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\envmap')
+    scene_path = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\toystory.pbrt"
+    output_dir = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\toystory"
 elif(mac):
     scene_path = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/materialcube.pbrt"
     output_dir = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/cube_anim"
@@ -36,7 +36,8 @@ for i in range(frames):
         
         output_lines = []
         for line in lines:
-            if line.strip().startswith('LookAt'):
+            stripped_line = line.strip()
+            if stripped_line.startswith('LookAt') and not stripped_line.startswith('#'):
                 parts = line.split()
                 target_x, target_y, target_z = parts[4], parts[5], parts[6]
                 up_vector = f"{parts[-3]} {parts[-2]} {parts[-1]}"

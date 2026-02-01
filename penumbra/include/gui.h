@@ -15,6 +15,7 @@ struct RenderSettings {
     int spp = 1;
     bool indirect = true;
     bool mis = true;
+    bool renderLights = false;
 
     // Env Map
     bool envMapEnabled = true;

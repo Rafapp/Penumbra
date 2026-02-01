@@ -102,6 +102,9 @@ void GUI::Render() {
                 ImGui::Text("MIS");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::Checkbox("##3", &renderSettings.mis);
+                ImGui::Text("Render Lights");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##4", &renderSettings.renderLights);
             }
 
 			// Env. Mapping 
