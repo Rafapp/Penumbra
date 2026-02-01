@@ -112,9 +112,6 @@ bool Renderer::SaveImage() {
         return false;
     }
     
-    bool stereo = false;
-    bool leftEye = false;
-    
     auto fullPath = (std::filesystem::path(imgOutPath) / imgName).string();
     
     OIIO::ImageSpec spec(renderWidth, renderHeight, 3, OIIO::TypeDesc::UINT8);
@@ -128,31 +125,9 @@ bool Renderer::SaveImage() {
         return false;
     }
     
-    const uint8_t* src = renderBuffer.data();
-    bool writeSuccess = true;
-    
-    if (!stereo) {
-        writeSuccess = out->write_image(OIIO::TypeDesc::UINT8, src);
-    } else {
-        std::vector<uint8_t> stereoBuffer(renderWidth * renderHeight * 3);
-        for (int i = 0; i < renderWidth * renderHeight; ++i) {
-            uint8_t r = src[3 * i + 0];
-            uint8_t g = src[3 * i + 1];
-            uint8_t b = src[3 * i + 2];
-            
-            if (leftEye) {
-                stereoBuffer[3 * i + 0] = r;
-                stereoBuffer[3 * i + 1] = 0;
-                stereoBuffer[3 * i + 2] = 0;
-            }
-            else {
-                stereoBuffer[3 * i + 0] = 0;
-                stereoBuffer[3 * i + 1] = g;
-                stereoBuffer[3 * i + 2] = b;
-            }
-        }
-        writeSuccess = out->write_image(OIIO::TypeDesc::UINT8, stereoBuffer.data());
-    }
+	const uint8_t* src = renderBuffer.data();
+	bool writeSuccess = true;
+	writeSuccess = out->write_image(OIIO::TypeDesc::UINT8, src);
     
     if (!writeSuccess) {
         std::cerr << "SaveImage error (write): " << out->geterror() << std::endl;
@@ -166,14 +141,14 @@ bool Renderer::SaveImage() {
 }
 
 // Render all animation frames (.pbrt scenes) in a folder
-void Renderer::RenderAnimation(){
+void Renderer::RenderAnimation() {
     auto rs = gui->GetRenderSettings();
     strncpy(animPath, rs.animPath, sizeof(animPath) - 1);
     animPath[sizeof(animPath) - 1] = '\0';
     strncpy(animSavePath, rs.saveAnimPath, sizeof(animSavePath) - 1);
     animSavePath[sizeof(animSavePath) - 1] = '\0';
 
-    std::vector<std::string> sceneFiles; 
+    std::vector<std::string> sceneFiles;
     for (const auto& entry : std::filesystem::recursive_directory_iterator(animPath)) {
         if (entry.is_regular_file() && entry.path().extension() == ".pbrt") {
             sceneFiles.push_back(entry.path().string());
@@ -181,7 +156,7 @@ void Renderer::RenderAnimation(){
     }
 
     int ct = sceneFiles.size();
-    if(ct == 0){
+    if (ct == 0) {
         std::cout << "No PBRT scenes found in path: " << animPath << std::endl;
         return;
     }
@@ -189,40 +164,33 @@ void Renderer::RenderAnimation(){
     std::cout << "Found " << ct << " PBRT scenes in path: " << animPath << std::endl;
     std::cout << "Rendering animation ..." << std::endl;
 
-    // Sort frame files numerically
     std::sort(sceneFiles.begin(), sceneFiles.end(), [](const std::string& a, const std::string& b) {
         int numA = std::stoi(std::filesystem::path(a).stem().string());
         int numB = std::stoi(std::filesystem::path(b).stem().string());
         return numA < numB;
-    });
+        });
 
-    // Render all frames
     int i = 1;
     for (const auto& sceneFile : sceneFiles) {
         std::cout << "Rendering frame: " << i << " out of: " << ct << std::endl;
         strncpy(scenePath, sceneFile.c_str(), sizeof(scenePath) - 1);
         scenePath[sizeof(scenePath) - 1] = '\0';
-        BeginRender();
-        threadPool->frameFinished = false;
-        while(!threadPool->frameFinished){
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+
+        BeginRender();  // This now blocks for both mono and stereo
+
         std::cout << "Finished rendering frame: " << i << std::endl;
 
-        // Update filename and path
         std::string fName = std::to_string(i) + ".png";
         strncpy(imgName, fName.c_str(), sizeof(imgName) - 1);
         imgName[sizeof(imgName) - 1] = '\0';
         strncpy(imgOutPath, animSavePath, sizeof(imgOutPath) - 1);
         imgOutPath[sizeof(imgOutPath) - 1] = '\0';
-        std::cout << "imgName is: " << imgName << std::endl;
-        std::cout << "imgOutPath is: " << imgOutPath << std::endl;
 
-        // Save frame
         std::cout << "Saving image ..." << std::endl;
-        if(SaveImage()){
+        if (SaveImage()) {
             std::cout << "Saved image " << fName << " successfully." << std::endl;
-        } else {
+        }
+        else {
             std::cout << "Failed to save image " << fName << "." << std::endl;
             return;
         }
@@ -232,11 +200,9 @@ void Renderer::RenderAnimation(){
 }
 
 void Renderer::BeginRender() {
-    if(threadPool) threadPool->Stop();
+    if (threadPool) threadPool->Stop();
     std::cout << "Starting render ..." << std::endl;
     auto rs = gui->GetRenderSettings();
-    
-    // Reload scene
     if (!LoadScene(scenePath)) {
         std::cerr << "Failed to reload scene" << std::endl;
         return;
@@ -247,18 +213,43 @@ void Renderer::BeginRender() {
     indirectLighting = rs.indirect;
     misEnabled = rs.mis;
     renderLights = rs.renderLights;
-	envMapEnabled = rs.envMapEnabled;
-	envMapIntensity = rs.envMapIntensity;
-	gammaCorrect = rs.gammaCorrect;
-	tonemap = rs.tonemap;
+    renderStereo = rs.renderStereo;
+    envMapEnabled = rs.envMapEnabled;
+    envMapIntensity = rs.envMapIntensity;
+    gammaCorrect = rs.gammaCorrect;
+    tonemap = rs.tonemap;
     exposureBias = rs.exposureBias;
-
+    stereoIPD = rs.stereoIPD;
     renderBuffer.resize(renderWidth * renderHeight * 3, 0);
     std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
     PrintStats();
-    threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
-    threadPool->startTime = std::chrono::steady_clock::now();
-    threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+    if (renderStereo) {
+        glm::vec3 originalPos = scene->camera->GetPosition();
+        glm::vec3 originalRight = scene->camera->GetRight();
+        std::cout << "Rendering left eye ..." << std::endl;
+        renderingLeftEye = true;
+        scene->camera->SetPosition(originalPos - originalRight * (stereoIPD * 0.5f));
+        threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+        threadPool->startTime = std::chrono::steady_clock::now();
+        threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+        while (!threadPool->frameFinished) {}
+        std::cout << "Left eye complete" << std::endl;
+        std::cout << "Rendering right eye ..." << std::endl;
+        renderingLeftEye = false;
+        scene->camera->SetPosition(originalPos + originalRight * (stereoIPD * 0.5f));
+        threadPool->Stop();
+        threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+        threadPool->startTime = std::chrono::steady_clock::now();
+        threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+        while (!threadPool->frameFinished) {}
+        std::cout << "Right eye complete" << std::endl;
+        scene->camera->SetPosition(originalPos);
+    }
+    else {
+        threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+        threadPool->startTime = std::chrono::steady_clock::now();
+        threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+    }
 }
 
 void Renderer::StopRender() {
@@ -337,9 +328,10 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 
     // Russian Roulette
     float pSurvive = 1.0f;
-    if (depth > 3){
+	if (depth > 32) return glm::vec3(0.0f);
+    if (depth > 1){
         float maxEnergy = glm::max(glm::max(throughput.r, throughput.g), throughput.b);
-        pSurvive = glm::min(0.99f, glm::max(0.25f, maxEnergy));
+        pSurvive = glm::min(0.99f, glm::max(0.1f, maxEnergy));
         float x = sampler.Sample1D();
         if (x > pSurvive) {
             return glm::vec3(0.0f);
@@ -358,8 +350,8 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     if (hit.areaLight != nullptr) {
         AreaLight* areaLight = dynamic_cast<AreaLight*>(hit.areaLight);
 
-        // Normal behavior: lights are visible
-        if (renderLights || depth > 1) {
+        // TODO: Properly ignore area light contributions
+        if (renderLights || depth > 0) {
             return throughput * areaLight->GetRadiance(hit, *hit.shape);
         }
         Ray continueRay(hit.p + ray.d * 1e-3f, ray.d);
@@ -506,40 +498,46 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
 void Renderer::RenderPixel(int u, int v) {
     std::vector<uint8_t>& buffer = GetRenderBuffer();
     glm::vec3 color(0.0f);
-
-    // Miss ray / Env. map (unjittered)
     Ray envRay = scene->camera->GenerateRay(u, v, renderWidth, renderHeight);
     HitInfo hit;
     hit.t = FLT_MAX;
-
     bool hitAny = TraceRay(envRay, hit);
     if (!hitAny) {
-		if (envMapEnabled) color = envMap.SampleColor(envRay) * envMapIntensity;
-		else color = glm::vec3(0.0f);
-    } 
-    // Pathtrace and super sample
+        if (envMapEnabled) color = envMap.SampleColor(envRay) * envMapIntensity;
+        else color = glm::vec3(0.0f);
+    }
     else {
         Sampler sampler(u * renderWidth + v);
         int depth = 0;
-        for(int i = 0; i < spp; i++){
+        for (int i = 0; i < spp; i++) {
             glm::vec2 jitter = sampler.SampleHalton2D(2, 3, i);
             Ray camRay = scene->camera->GenerateRay(u + jitter.x, v + jitter.y, renderWidth, renderHeight);
             glm::vec3 sample = TracePath(camRay, sampler, depth);
             color += sample;
         }
-        // Average over samples
         color /= float(spp);
     }
-
-    // Gamma correct and tonemap
-    if(tonemap) Color::UnchartedTonemapFilmic(color, exposureBias);
-    if(gammaCorrect) Color::GammaCorrect(color);
-    
-    // Write to buffer
+    if (tonemap) Color::UnchartedTonemapFilmic(color, exposureBias);
+    if (gammaCorrect) Color::GammaCorrect(color);
     int index = (v * renderWidth + u) * 3;
-    buffer[index + 0] = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
-    buffer[index + 1] = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
-    buffer[index + 2] = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
+    uint8_t r = static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255);
+    uint8_t g = static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255);
+    uint8_t b = static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255);
+
+    if (renderStereo) {
+        if (renderingLeftEye) {
+            buffer[index + 1] = g;
+            buffer[index + 2] = b;
+        }
+        else {
+            buffer[index + 0] = r;
+        }
+    }
+    else {
+        buffer[index + 0] = r;
+        buffer[index + 1] = g;
+        buffer[index + 2] = b;
+    }
 }
 
 bool Renderer::LoadScene(const std::string& filename) {

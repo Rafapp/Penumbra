@@ -97,12 +97,11 @@ Viewport::Viewport(Renderer* renderer, int width, int height) :
     gui = std::make_unique<GUI>(window);
     Renderer* r = renderer;
     gui->SetRenderCallback([this, r]() {
-        // TODO: Better scene file pipeline
         auto rs = gui->GetRenderSettings();
         strncpy(r->scenePath, rs.scenePath, sizeof(r->scenePath) - 1);
         r->scenePath[sizeof(r->scenePath) - 1] = '\0';
-        r->BeginRender();
-    });
+        std::thread([r]() { r->BeginRender(); }).detach();
+        });
     gui->SetSaveCallback([this, r]() {
         auto rs = gui->GetRenderSettings();
         strncpy(r->imgOutPath, rs.imgOutPath, sizeof(r->imgOutPath) - 1);

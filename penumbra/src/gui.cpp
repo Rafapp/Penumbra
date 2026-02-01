@@ -105,6 +105,12 @@ void GUI::Render() {
                 ImGui::Text("Render Lights");
                 ImGui::SetNextItemWidth(150.0f);
                 ImGui::Checkbox("##4", &renderSettings.renderLights);
+                ImGui::Text("Render Stereo");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::Checkbox("##5", &renderSettings.renderStereo);
+                ImGui::Text("Stereo IPD");
+                ImGui::SetNextItemWidth(150.0f);
+                ImGui::InputFloat("##6", &renderSettings.stereoIPD);
             }
 
 			// Env. Mapping 

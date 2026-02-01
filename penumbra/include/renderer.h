@@ -68,6 +68,7 @@ private:
     std::unique_ptr<Scene> scene;
     minipbrt::Scene* pbrtScene = nullptr;
     std::unique_ptr<RenderThreadPool> threadPool;
+	bool renderingLeftEye = false;
 
 
     // --- GUI Variables (defaults not considered) ---
@@ -80,6 +81,10 @@ private:
     int renderWidth = -1;
     int renderHeight = -1;
     bool renderLights = false;
+
+    // Stereo
+	bool renderStereo = false;
+    float stereoIPD = -1.0f;
 
     // Env Map
 	bool envMapEnabled = false;

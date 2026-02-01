@@ -16,6 +16,8 @@ struct RenderSettings {
     bool indirect = true;
     bool mis = true;
     bool renderLights = false;
+    bool renderStereo = false;
+	float stereoIPD = 0.065f;
 
     // Env Map
     bool envMapEnabled = true;
