@@ -147,45 +147,40 @@ void Renderer::RenderAnimation() {
     animPath[sizeof(animPath) - 1] = '\0';
     strncpy(animSavePath, rs.saveAnimPath, sizeof(animSavePath) - 1);
     animSavePath[sizeof(animSavePath) - 1] = '\0';
-
     std::vector<std::string> sceneFiles;
     for (const auto& entry : std::filesystem::recursive_directory_iterator(animPath)) {
         if (entry.is_regular_file() && entry.path().extension() == ".pbrt") {
             sceneFiles.push_back(entry.path().string());
         }
     }
-
     int ct = sceneFiles.size();
     if (ct == 0) {
         std::cout << "No PBRT scenes found in path: " << animPath << std::endl;
         return;
     }
-
     std::cout << "Found " << ct << " PBRT scenes in path: " << animPath << std::endl;
     std::cout << "Rendering animation ..." << std::endl;
-
     std::sort(sceneFiles.begin(), sceneFiles.end(), [](const std::string& a, const std::string& b) {
         int numA = std::stoi(std::filesystem::path(a).stem().string());
         int numB = std::stoi(std::filesystem::path(b).stem().string());
         return numA < numB;
         });
-
     int i = 1;
     for (const auto& sceneFile : sceneFiles) {
         std::cout << "Rendering frame: " << i << " out of: " << ct << std::endl;
         strncpy(scenePath, sceneFile.c_str(), sizeof(scenePath) - 1);
         scenePath[sizeof(scenePath) - 1] = '\0';
-
-        BeginRender();  // This now blocks for both mono and stereo
-
+        BeginRender();
+        threadPool->frameFinished = false;
+        while (!threadPool->frameFinished) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
         std::cout << "Finished rendering frame: " << i << std::endl;
-
         std::string fName = std::to_string(i) + ".png";
         strncpy(imgName, fName.c_str(), sizeof(imgName) - 1);
         imgName[sizeof(imgName) - 1] = '\0';
         strncpy(imgOutPath, animSavePath, sizeof(imgOutPath) - 1);
         imgOutPath[sizeof(imgOutPath) - 1] = '\0';
-
         std::cout << "Saving image ..." << std::endl;
         if (SaveImage()) {
             std::cout << "Saved image " << fName << " successfully." << std::endl;
