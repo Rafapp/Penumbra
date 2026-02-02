@@ -346,11 +346,12 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
         AreaLight* areaLight = dynamic_cast<AreaLight*>(hit.areaLight);
 
         // TODO: Properly ignore area light contributions
-        if (renderLights || depth > 0) {
-            return throughput * areaLight->GetRadiance(hit, *hit.shape);
-        }
-        Ray continueRay(hit.p + ray.d * 1e-3f, ray.d);
-        return TracePath(continueRay, sampler, depth, throughput, lastBounceDiffuse);
+        // if (renderLights || depth > 4) {
+        //     return throughput * areaLight->GetRadiance(hit, *hit.shape);
+        // }
+        // Ray continueRay(hit.p + ray.d * 1e-3f, ray.d);
+        // return TracePath(continueRay, sampler, depth, throughput, lastBounceDiffuse);
+        return throughput * areaLight->GetRadiance(hit, *hit.shape);
     }
 
     Material* mat = hit.material;
