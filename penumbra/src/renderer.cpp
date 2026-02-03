@@ -310,25 +310,26 @@ glm::vec3 Renderer::TracePath(const Ray& ray, Sampler& sampler, int depth, glm::
     hit.t = FLT_MAX;
     if (!TraceRay(ray, hit)) {
         if (envMapEnabled) {
-            float intensity = envMapIntensity;
+            //float intensity = envMapIntensity;
 			 // TODO: Band aid before proper environment map importance sampling
              // Only reduce for diffuse bounces
-             if (lastBounceDiffuse && depth > 0) {
-                 intensity *= 1e-3f;
-             }
-            return envMap.SampleColor(ray) * intensity;
+             //if (lastBounceDiffuse && depth > 0) {
+             //    intensity *= 1e-3f;
+             //}
+            //return envMap.SampleColor(ray) * intensity;
+            return throughput * envMap.SampleColor(ray) * envMapIntensity;
         }
         return glm::vec3(0.0f);
     }
 
     // Russian Roulette
-    float pSurvive = 1.0f;
-	if (depth > 32) return glm::vec3(0.0f);
-    if (depth > 1){
-        float maxEnergy = glm::max(glm::max(throughput.r, throughput.g), throughput.b);
-        pSurvive = glm::min(0.99f, glm::max(0.1f, maxEnergy));
-        float x = sampler.Sample1D();
-        if (x > pSurvive) {
+	//if (depth > 8) return glm::vec3(0.0f);
+    //float pSurvive = 0.99f;
+    if (depth >= 32) {
+        float maxComp = glm::max(throughput.r, glm::max(throughput.g, throughput.b));
+        float pSurvive = glm::clamp(maxComp, 0.05f, 0.99f);
+        if (sampler.Sample1D() > pSurvive) {
+			//std::cout << "RR terminated at depth: " << depth << std::endl;
             return glm::vec3(0.0f);
         }
         throughput /= pSurvive;

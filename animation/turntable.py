@@ -2,19 +2,19 @@ import os
 import math
 
 # === Camera ===
-height = 27.5 
-radius = 35 
+height = 45.0 
+radius = 35.0 
 
 # === Animation ===
-frames = 48 
+frames = 96 
 windows = True 
 mac = False 
 scene_path = ""
 output_dir = ""
 
 if(windows):
-    scene_path = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\toystory.pbrt"
-    output_dir = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\toystory"
+    scene_path = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\template\\toystory_new.pbrt"
+    output_dir = "C:\\Users\\rpadi\\Documents\\Dev\\PenumbraDev\\anim\\gen\\toystory_final"
 elif(mac):
     scene_path = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/build-release/resources/scenes/materialcube.pbrt"
     output_dir = "/Users/rafa/Documents/Dev/PenumbraDev/Penumbra/resources/scenes/cube_anim"
