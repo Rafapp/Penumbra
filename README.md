@@ -2,7 +2,8 @@
   Penumbra
 </h1>
 
-![alien](https://github.com/user-attachments/assets/79021d29-da05-4e00-a0e6-5a68996dd6dc)
+![theclaw](https://github.com/user-attachments/assets/35267b27-8b6b-4994-b7ce-30aaea69de22)
+
 **Penumbra is a compact, physically-based path tracing renderer built for fast iteration and rendering experiments.**
 
 ## Motivation
