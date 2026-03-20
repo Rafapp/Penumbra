@@ -7,7 +7,7 @@
 **Penumbra is a compact, physically-based path tracing renderer built for fast iteration and rendering experiments.**
 
 ## Motivation
-After taking the amazing [CS 6620, Rendering with Ray Tracing](https://graphics.cs.utah.edu/courses/cs6620/fall2025/) course by the legendary [Cem Yuksel](https://www.cemyuksel.com/) at the University of Utah, I decided to combine all my learnings into a single renderer after completing the course, hoping to use it for future research and projects.
+After taking the amazing [CS 6620, Rendering with Ray Tracing](https://graphics.cs.utah.edu/courses/cs6620/fall2025/) course by the legendary [Cem Yuksel](https://www.cemyuksel.com/) at the University of Utah, I decided to combine all my learnings into a single renderer after completing the course, hoping to use it for future research and projects. Please note that none of the code from the course was used for this project, it was built from scratch.
 
 ## Features
 - **Rendering**
