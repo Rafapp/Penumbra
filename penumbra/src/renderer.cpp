@@ -142,6 +142,7 @@ bool Renderer::SaveImage() {
 
 // Render all animation frames (.pbrt scenes) in a folder
 void Renderer::RenderAnimation() {
+#ifndef HEADLESS_MODE
     auto rs = gui->GetRenderSettings();
     strncpy(animPath, rs.animPath, sizeof(animPath) - 1);
     animPath[sizeof(animPath) - 1] = '\0';
@@ -192,9 +193,11 @@ void Renderer::RenderAnimation() {
         std::cout << std::endl;
         i++;
     }
+#endif // !HEADLESS_MODE
 }
 
 void Renderer::BeginRender() {
+#ifndef HEADLESS_MODE
     if (threadPool) threadPool->Stop();
     std::cout << "Starting render ..." << std::endl;
     auto rs = gui->GetRenderSettings();
@@ -245,9 +248,36 @@ void Renderer::BeginRender() {
         threadPool->startTime = std::chrono::steady_clock::now();
         threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
     }
+#endif // !HEADLESS_MODE
 }
 
 void Renderer::StopRender() {
+}
+
+void Renderer::RenderHeadless(const RenderSettings& rs) {
+    renderWidth = rs.width;
+    renderHeight = rs.height;
+    spp = rs.spp;
+    indirectLighting = rs.indirect;
+    misEnabled = rs.mis;
+    renderLights = rs.renderLights;
+    renderStereo = false;
+    envMapEnabled = rs.envMapEnabled;
+    envMapIntensity = rs.envMapIntensity;
+    gammaCorrect = rs.gammaCorrect;
+    tonemap = rs.tonemap;
+    exposureBias = rs.exposureBias;
+
+    renderBuffer.resize(renderWidth * renderHeight * 3, 0);
+    std::fill(renderBuffer.begin(), renderBuffer.end(), 0);
+    PrintStats();
+
+    threadPool = std::make_unique<RenderThreadPool>(scene.get(), NTHREADS, renderWidth, renderHeight);
+    threadPool->startTime = std::chrono::steady_clock::now();
+    threadPool->Start([this](int u, int v) { RenderPixel(u, v); });
+    while (!threadPool->frameFinished) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 }
 
 bool Renderer::Occluded(const glm::vec3& p, const glm::vec3& wi, const glm::vec3& n, float maxDist) const {

@@ -12,7 +12,7 @@
 bool Sphere::IntersectRay(const Ray& r, HitInfo& hit) {
     float a = glm::dot(r.d, r.d);
     float b = 2.0f * glm::dot(r.o, r.d);
-    float c = glm::dot(r.o, r.o) - 1.0f;
+    float c = glm::dot(r.o, r.o) - radius * radius;
     float discriminant = (b * b) - (4.0f * a * c);
     
     if (discriminant < 0.0f) return false;
@@ -205,6 +205,69 @@ TriangleMesh::TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene, uint32_t me
     this->areaLightId = static_cast<int>(plyMesh->areaLight);
 
     // TODO: Calculate surface area if mesh is area light
+}
+
+TriangleMesh::TriangleMesh(minipbrt::TriangleMesh* triMesh, glm::mat4 transform, int matIdx, int areaLightIdx) {
+    this->transform = transform;
+    this->inverseTransform = glm::inverse(transform);
+    this->position = glm::vec3(transform[3]);
+    this->scale = glm::vec3(
+        glm::length(glm::vec3(transform[0])),
+        glm::length(glm::vec3(transform[1])),
+        glm::length(glm::vec3(transform[2])));
+    this->materialId = matIdx;
+    this->areaLightId = areaLightIdx;
+
+    if (!triMesh || triMesh->num_vertices == 0 || triMesh->num_indices == 0) return;
+
+    SubMesh* mesh = new SubMesh();
+    mesh->nVerts = triMesh->num_vertices;
+    mesh->nTris = triMesh->num_indices / 3;
+    mesh->materialIndex = (matIdx >= 0) ? static_cast<uint32_t>(matIdx) : 0u;
+
+    mesh->vertices = new std::vector<glm::vec4>(mesh->nVerts);
+    for (uint32_t i = 0; i < mesh->nVerts; i++) {
+        (*mesh->vertices)[i] = glm::vec4(
+            triMesh->P[3*i], triMesh->P[3*i+1], triMesh->P[3*i+2], 0.0f);
+    }
+
+    mesh->triangles = new std::vector<glm::uvec4>(mesh->nTris);
+    for (uint32_t i = 0; i < mesh->nTris; i++) {
+        (*mesh->triangles)[i] = glm::uvec4(
+            triMesh->indices[3*i], triMesh->indices[3*i+1], triMesh->indices[3*i+2], 0u);
+    }
+
+    if (triMesh->N) {
+        mesh->normals = new std::vector<glm::vec3>(mesh->nVerts);
+        for (uint32_t i = 0; i < mesh->nVerts; i++) {
+            (*mesh->normals)[i] = glm::vec3(
+                triMesh->N[3*i], triMesh->N[3*i+1], triMesh->N[3*i+2]);
+        }
+    } else {
+        // Compute flat normals from triangle geometry
+        mesh->normals = new std::vector<glm::vec3>(mesh->nVerts, glm::vec3(0.0f));
+        for (uint32_t i = 0; i < mesh->nTris; i++) {
+            const glm::uvec4& tri = (*mesh->triangles)[i];
+            glm::vec3 v0 = glm::vec3((*mesh->vertices)[tri.x]);
+            glm::vec3 v1 = glm::vec3((*mesh->vertices)[tri.y]);
+            glm::vec3 v2 = glm::vec3((*mesh->vertices)[tri.z]);
+            glm::vec3 faceNormal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+            (*mesh->normals)[tri.x] += faceNormal;
+            (*mesh->normals)[tri.y] += faceNormal;
+            (*mesh->normals)[tri.z] += faceNormal;
+        }
+        for (uint32_t i = 0; i < mesh->nVerts; i++) {
+            (*mesh->normals)[i] = glm::normalize((*mesh->normals)[i]);
+        }
+    }
+
+    if (mesh->BuildBVH()) {
+        mesh->bvhReady = true;
+    } else {
+        std::cerr << "ERROR: Could not build BVH for inline triangle mesh" << std::endl;
+    }
+
+    meshes.push_back(mesh);
 }
 
 TriangleMesh::~TriangleMesh() {

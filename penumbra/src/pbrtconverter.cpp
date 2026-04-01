@@ -142,6 +142,15 @@ Shape* PbrtConverter::ConvertShape(minipbrt::Shape* pbrtShape, Scene& scene, uin
         auto plyMesh = static_cast<minipbrt::PLYMesh*>(pbrtShape);
         shape = new TriangleMesh(plyMesh, scene, shapeIdx);
     }
+    else if (pbrtShape->type() == minipbrt::ShapeType::TriangleMesh) {
+        auto triMesh = static_cast<minipbrt::TriangleMesh*>(pbrtShape);
+        glm::mat4 transform = PbrtConverter::TransformToMat4(triMesh->shapeToWorld);
+        int matIdx = (triMesh->material != minipbrt::kInvalidIndex)
+            ? static_cast<int>(triMesh->material) : -1;
+        int areaLightIdx = (triMesh->areaLight != minipbrt::kInvalidIndex)
+            ? static_cast<int>(triMesh->areaLight) : -1;
+        shape = new TriangleMesh(triMesh, transform, matIdx, areaLightIdx);
+    }
     else {
         std::cerr << "Unsupported shape type" << std::endl;
     }

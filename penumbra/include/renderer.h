@@ -16,7 +16,26 @@
 #include "threading.h"
 #include "pbrtconverter.h"
 #include "sampling.h"
+#ifndef HEADLESS_MODE
 #include "gui.h"
+#else
+// Minimal RenderSettings stub for headless mode (no GUI dependency)
+struct RenderSettings {
+    int width = 960;
+    int height = 540;
+    int spp = 1;
+    bool indirect = true;
+    bool mis = true;
+    bool renderLights = false;
+    bool renderStereo = false;
+    float stereoIPD = 0.065f;
+    bool envMapEnabled = false;
+    float envMapIntensity = 0.5f;
+    bool gammaCorrect = true;
+    bool tonemap = true;
+    float exposureBias = 1.0f;
+};
+#endif
 #include "color.h"
 #include "environmentmap.h"
 
@@ -44,6 +63,7 @@ public:
     glm::vec3 TracePath(const Ray& ray, Sampler& sampler, int depth, glm::vec3 throughput = glm::vec3(1.0f), bool lastBounceDiffuse = false);
     void RenderAnimation();
     void BeginRender();
+    void RenderHeadless(const RenderSettings& rs);
     void StopRender();
     bool LoadScene(const std::string& filename);
     int GetRenderWidth() const { return renderWidth; }
@@ -51,7 +71,9 @@ public:
     void SetRenderWidth(int w) { renderWidth = w; }
     void SetRenderHeight(int h) { renderHeight = h; }
     std::vector<uint8_t>& GetRenderBuffer() { return renderBuffer; }
+#ifndef HEADLESS_MODE
     void SetGUI(GUI* guiPtr) { gui = guiPtr; }
+#endif
 	bool SaveImage();
     void PrintStats();
 
@@ -74,7 +96,9 @@ private:
     // --- GUI Variables (defaults not considered) ---
 
     // Rendering
+#ifndef HEADLESS_MODE
     GUI* gui = nullptr;
+#endif
     bool indirectLighting = false;
     bool misEnabled = false;
     int spp = -1;

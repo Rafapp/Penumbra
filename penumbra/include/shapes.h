@@ -85,6 +85,7 @@ struct SubMesh{
 class TriangleMesh : public Shape {
 public:
     TriangleMesh(minipbrt::PLYMesh* plyMesh, Scene& scene, uint32_t shapeIdx);
+    TriangleMesh(minipbrt::TriangleMesh* triMesh, glm::mat4 transform, int matIdx, int areaLightIdx);
     ~TriangleMesh();
     bool IntersectRay(const Ray& r, HitInfo& hit) override;
     std::vector<SubMesh*> meshes;

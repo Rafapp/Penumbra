@@ -110,7 +110,11 @@ FetchContent_Declare(
 # ----------------------------------------------------------------------
 # OpenImageIO
 # ----------------------------------------------------------------------
-find_package(OpenImageIO REQUIRED)
+find_package(OpenImageIO QUIET CONFIG)
+if(NOT OpenImageIO_FOUND OR NOT TARGET OpenImageIO::OpenImageIO)
+    message(STATUS "OpenImageIO CMake config not usable, falling back to manual search")
+    find_package(OpenImageIO_Safe REQUIRED)
+endif()
 
 # ----------------------------------------------------------------------
 # TinyBVH
@@ -120,7 +124,7 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/jbikker/tinybvh.git
 	GIT_TAG 4b5b649f1193374762b0247ee20de3345633bf9b
 	GIT_PROGRESS TRUE
-    GIT_SHALLOW  TRUE
+    GIT_SHALLOW  FALSE
 	CMAKE_ARGS
 		-DBUILD_SPEEDTEST=OFF
 		-DBUILD_SHARED_LIBS=OFF
@@ -140,8 +144,9 @@ FetchContent_Declare(
 )
 
 # ----------------------------------------------------------------------
-# GLFW
+# GLFW  (skipped in headless mode)
 # ----------------------------------------------------------------------
+if(NOT PATHTRACER_HEADLESS)
 FetchContent_Declare(
 	glfw
 	GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -152,12 +157,15 @@ FetchContent_Declare(
 		-DGLFW_BUILD_DOCS=OFF
 		-DGLFW_BUILD_TESTS=OFF
 		-DGLFW_BUILD_EXAMPLES=OFF
+		-DGLFW_BUILD_WAYLAND=OFF
 		-DBUILD_SHARED_LIBS=ON
 )
+endif()
 
 # ----------------------------------------------------------------------
-# ImGui
+# ImGui  (skipped in headless mode)
 # ----------------------------------------------------------------------
+if(NOT PATHTRACER_HEADLESS)
 FetchContent_Declare(
 	imgui
 	GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -165,9 +173,14 @@ FetchContent_Declare(
 	GIT_PROGRESS TRUE
     GIT_SHALLOW  TRUE
 )
+endif()
 
 # Bring all FetchContent targets into the build
-FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
+if(NOT PATHTRACER_HEADLESS)
+	FetchContent_MakeAvailable(assimp minipbrt tinybvh glm glfw imgui)
+else()
+	FetchContent_MakeAvailable(assimp minipbrt tinybvh glm)
+endif()
 
 # Fix minipbrt typo
 file(READ ${minipbrt_SOURCE_DIR}/main.cpp contents)
@@ -188,8 +201,9 @@ option(PATHTRACER_HEADLESS "Build without UI (Headless)" OFF)
 option(ENABLE_VERIFY_TESTS "Build linkage verification tests" ON)
 
 # ======================================================================
-#  ImGui Library
+#  ImGui Library  (only when UI is enabled)
 # ======================================================================
+if(NOT PATHTRACER_HEADLESS)
 add_library(imgui STATIC
 	${imgui_SOURCE_DIR}/imgui.cpp
 	${imgui_SOURCE_DIR}/imgui_demo.cpp
@@ -201,12 +215,15 @@ add_library(imgui STATIC
 )
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 target_link_libraries(imgui PUBLIC glfw)
+endif()
 
 # ======================================================================
-#  Glad Loader
+#  Glad Loader  (only when UI is enabled)
 # ======================================================================
+if(NOT PATHTRACER_HEADLESS)
 add_library(glad STATIC ${CMAKE_SOURCE_DIR}/third_party/glad/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/third_party/glad)
+endif()
 
 # ======================================================================
 #  verify_libraries (optional)
@@ -314,28 +331,57 @@ endif()
 file(GLOB SRC_FILES ${CMAKE_SOURCE_DIR}/penumbra/src/*.cpp)
 file(GLOB HEADER_FILES ${CMAKE_SOURCE_DIR}/penumbra/include/*.h)
 
+# In headless mode, exclude viewport and gui (they depend on GLFW/OpenGL/ImGui)
+if(PATHTRACER_HEADLESS)
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/viewport\\.cpp$")
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/gui\\.cpp$")
+    list(FILTER HEADER_FILES EXCLUDE REGEX ".*/viewport\\.h$")
+    list(FILTER HEADER_FILES EXCLUDE REGEX ".*/gui\\.h$")
+endif()
+
 add_executable(penumbra ${SRC_FILES} ${HEADER_FILES})
 
 target_sources(penumbra PRIVATE ${minipbrt_SOURCE_DIR}/minipbrt.cpp)
 
-target_include_directories(penumbra PRIVATE
-	${CMAKE_SOURCE_DIR}/penumbra/include
-	${CMAKE_SOURCE_DIR}/third_party
-	${glfw_SOURCE_DIR}/include
-	${glm_SOURCE_DIR}
-	${assimp_SOURCE_DIR}/include
-	${minipbrt_SOURCE_DIR}
-	${tinybvh_SOURCE_DIR}
-	${imgui_SOURCE_DIR}
-	${imgui_SOURCE_DIR}/backends
-)
+if(NOT PATHTRACER_HEADLESS)
+	target_include_directories(penumbra PRIVATE
+		${CMAKE_SOURCE_DIR}/penumbra/include
+		${CMAKE_SOURCE_DIR}/third_party
+		${glfw_SOURCE_DIR}/include
+		${glm_SOURCE_DIR}
+		${assimp_SOURCE_DIR}/include
+		${minipbrt_SOURCE_DIR}
+		${tinybvh_SOURCE_DIR}
+		${imgui_SOURCE_DIR}
+		${imgui_SOURCE_DIR}/backends
+	)
+else()
+	target_include_directories(penumbra PRIVATE
+		${CMAKE_SOURCE_DIR}/penumbra/include
+		${glm_SOURCE_DIR}
+		${assimp_SOURCE_DIR}/include
+		${minipbrt_SOURCE_DIR}
+		${tinybvh_SOURCE_DIR}
+	)
+endif()
 
 # Silence TinyBVH warnings
 # target_include_directories(penumbra SYSTEM PRIVATE ${tinybvh_SOURCE_DIR})
 
-target_link_libraries(penumbra PRIVATE
-	glfw assimp imgui OpenImageIO::OpenImageIO glad
-)
+if(NOT PATHTRACER_HEADLESS)
+	target_link_libraries(penumbra PRIVATE
+		glfw assimp imgui OpenImageIO::OpenImageIO glad
+	)
+else()
+	target_link_libraries(penumbra PRIVATE
+		assimp OpenImageIO::OpenImageIO
+	)
+	# Allow unresolved symbols in shared libraries (e.g. gstreamer deps in
+	# the system OpenCV build that is pulled in transitively via OIIO).
+	if(NOT WIN32)
+		target_link_options(penumbra PRIVATE -Wl,--allow-shlib-undefined)
+	endif()
+endif()
 
 # ----------------------------------------------------------------------
 # Windows DLL Copying for Penumbra
